@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
-import { Search, ChevronDown, ChevronRight, User, Clock, Zap, X, Package, Truck, CheckCircle2, MapPin, Star, Shield, ArrowRight, Hash, UserCircle, Receipt, IndianRupee } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight, User, Clock, Zap, X, Package, Truck, CheckCircle2, MapPin, Star, Shield, ArrowRight, Hash, UserCircle, Receipt, IndianRupee, CreditCard, Smartphone, Wallet } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './index.css'
 
@@ -36,68 +36,68 @@ const CATEGORIES = [
 ]
 
 // ============================================================
-// PRODUCTS (real Indian items with brand colors)
+// PRODUCTS — real CDN images
 // ============================================================
 const PRODUCTS = {
   best: [
-    { id: 1, name: 'Bisleri Water', variant: '1 L', price: 20, mrp: 20, cat: 'Drinks', color: '#1565C0', bg: '#E3F2FD', rating: 4.8, tag: '💧' },
-    { id: 2, name: "Lay's Classic Salted", variant: '52 g', price: 20, mrp: 20, cat: 'Snacks', color: '#E65100', bg: '#FFF8E1', rating: 4.5, tag: '🥔' },
-    { id: 3, name: 'Dolo 650 Tablet', variant: '15 Tabs', price: 30, mrp: 35, cat: 'Pharma', color: '#C62828', bg: '#FFEBEE', rating: 4.9, tag: '💊' },
-    { id: 4, name: 'Chai Point Masala Chai', variant: '200 ml', price: 40, mrp: 50, cat: 'Drinks', color: '#4E342E', bg: '#EFEBE9', rating: 4.7, tag: '☕' },
-    { id: 5, name: 'Maggi 2-Minute Noodles', variant: '70 g', price: 14, mrp: 14, cat: 'Instant Food', color: '#F9A825', bg: '#FFF8E1', rating: 4.6, tag: '🍜' },
-    { id: 6, name: 'Dettol Hand Sanitizer', variant: '50 ml', price: 29, mrp: 29, cat: 'Hygiene', color: '#2E7D32', bg: '#E8F5E9', rating: 4.4, tag: '🧴' },
+    { id: 1, name: 'Bisleri Water', variant: '1 L', price: 20, mrp: 20, cat: 'Drinks', color: '#1565C0', bg: '#E3F2FD', rating: 4.8, img: 'https://www.bisleri.com/cdn/shop/files/Bisleri_1L_1.jpg?v=1716872993&width=600' },
+    { id: 2, name: "Lay's Classic Salted", variant: '52 g', price: 20, mrp: 20, cat: 'Snacks', color: '#E65100', bg: '#FFF8E1', rating: 4.5, img: 'https://www.lays.in/sites/g/files/fnmzdf1071/files/2022-08/lays_classic_salted.png' },
+    { id: 3, name: 'Dolo 650 Tablet', variant: '15 Tabs', price: 30, mrp: 35, cat: 'Pharma', color: '#C62828', bg: '#FFEBEE', rating: 4.9, img: 'https://www.netmeds.com/images/product-v1/600x600/902498/dolo_650mg_tablet_15s_0.jpg' },
+    { id: 4, name: 'Chai Point Masala Chai', variant: '200 ml', price: 40, mrp: 50, cat: 'Drinks', color: '#4E342E', bg: '#EFEBE9', rating: 4.7, img: 'https://images.jdmagicbox.com/comp/def_content/tea-and-coffee-shop/default-tea-and-coffee-shop-14.jpg' },
+    { id: 5, name: 'Maggi 2-Minute Noodles', variant: '70 g', price: 14, mrp: 14, cat: 'Instant Food', color: '#F9A825', bg: '#FFF8E1', rating: 4.6, img: 'https://www.maggi.in/sites/default/files/styles/transparent_png_product_detail/public/2022-04/MAGGI%202-Min-MasalaNoodles_70g_Front.png' },
+    { id: 6, name: 'Dettol Hand Sanitizer', variant: '50 ml', price: 29, mrp: 29, cat: 'Hygiene', color: '#2E7D32', bg: '#E8F5E9', rating: 4.4, img: 'https://www.dettol.co.in/images/dettol-hand-sanitizer-50ml.jpg' },
   ],
   snacks: [
-    { id: 7, name: 'Kurkure Masala Munch', variant: '75 g', price: 20, mrp: 20, cat: 'Snacks', color: '#BF360C', bg: '#FBE9E7', rating: 4.3, tag: '🌶️' },
-    { id: 8, name: 'Cadbury Dairy Milk Silk', variant: '60 g', price: 80, mrp: 90, cat: 'Sweets', color: '#4A148C', bg: '#F3E5F5', rating: 4.8, tag: '🍫' },
-    { id: 9, name: 'Parle-G Gold Biscuits', variant: '100 g', price: 20, mrp: 20, cat: 'Snacks', color: '#F57F17', bg: '#FFF8E1', rating: 4.5, tag: '🍪' },
-    { id: 10, name: 'Oreo Original Cream', variant: '120 g', price: 30, mrp: 35, cat: 'Snacks', color: '#1A237E', bg: '#E8EAF6', rating: 4.6, tag: '🥠' },
-    { id: 11, name: "Haldiram's Aloo Bhujia", variant: '200 g', price: 55, mrp: 60, cat: 'Snacks', color: '#E65100', bg: '#FFF3E0', rating: 4.7, tag: '🍘' },
-    { id: 12, name: 'Dark Fantasy Choco Fills', variant: '75 g', price: 40, mrp: 40, cat: 'Snacks', color: '#3E2723', bg: '#EFEBE9', rating: 4.4, tag: '🍩' },
-    { id: 27, name: "Haldiram's Soan Papdi", variant: '250 g', price: 75, mrp: 85, cat: 'Sweets', color: '#FF8F00', bg: '#FFF8E1', rating: 4.5, tag: '🍬' },
-    { id: 28, name: 'Balaji Wafers', variant: '60 g', price: 15, mrp: 15, cat: 'Snacks', color: '#558B2F', bg: '#F1F8E9', rating: 4.3, tag: '🥔' },
+    { id: 7, name: 'Kurkure Masala Munch', variant: '75 g', price: 20, mrp: 20, cat: 'Snacks', color: '#BF360C', bg: '#FBE9E7', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40111456_4-kurkure-masala-munch.jpg' },
+    { id: 8, name: 'Cadbury Dairy Milk Silk', variant: '60 g', price: 80, mrp: 90, cat: 'Sweets', color: '#4A148C', bg: '#F3E5F5', rating: 4.8, img: 'https://www.cadbury.co.in/wp-content/uploads/2020/12/CDMS-60g-Front.png' },
+    { id: 9, name: 'Parle-G Gold Biscuits', variant: '100 g', price: 20, mrp: 20, cat: 'Snacks', color: '#F57F17', bg: '#FFF8E1', rating: 4.5, img: 'https://www.parleproducts.com/storage/uploads/product/Parle-G_Gold_100g_pack.png' },
+    { id: 10, name: 'Oreo Original Cream', variant: '120 g', price: 30, mrp: 35, cat: 'Snacks', color: '#1A237E', bg: '#E8EAF6', rating: 4.6, img: 'https://www.oreo.in/sites/g/files/fnmzdf706/files/2020-08/Oreo-Original-Cream-120g.png' },
+    { id: 11, name: "Haldiram's Aloo Bhujia", variant: '200 g', price: 55, mrp: 60, cat: 'Snacks', color: '#E65100', bg: '#FFF3E0', rating: 4.7, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40168055_3-haldirams-aloo-bhujia.jpg' },
+    { id: 12, name: 'Dark Fantasy Choco Fills', variant: '75 g', price: 40, mrp: 40, cat: 'Snacks', color: '#3E2723', bg: '#EFEBE9', rating: 4.4, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40234156_2-sunfeast-dark-fantasy-choco-fills.jpg' },
+    { id: 27, name: "Haldiram's Soan Papdi", variant: '250 g', price: 75, mrp: 85, cat: 'Sweets', color: '#FF8F00', bg: '#FFF8E1', rating: 4.5, img: 'https://www.bigbasket.com/media/uploads/p/xxl/267065_3-haldirams-soan-papdi.jpg' },
+    { id: 28, name: 'Balaji Wafers', variant: '60 g', price: 15, mrp: 15, cat: 'Snacks', color: '#558B2F', bg: '#F1F8E9', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40088960_3-balaji-simply-salted-wafers.jpg' },
   ],
   drinks: [
-    { id: 13, name: 'Amul Taaza Milk', variant: '500 ml', price: 30, mrp: 30, cat: 'Drinks', color: '#D84315', bg: '#FBE9E7', rating: 4.4, tag: '🥛' },
-    { id: 14, name: 'Red Bull Energy Drink', variant: '250 ml', price: 115, mrp: 125, cat: 'Drinks', color: '#1565C0', bg: '#E3F2FD', rating: 4.6, tag: '⚡' },
-    { id: 15, name: 'Paper Boat Aamras', variant: '200 ml', price: 30, mrp: 30, cat: 'Drinks', color: '#F57F17', bg: '#FFF8E1', rating: 4.7, tag: '🥭' },
-    { id: 16, name: 'Coca-Cola', variant: '300 ml', price: 35, mrp: 40, cat: 'Drinks', color: '#B71C1C', bg: '#FFEBEE', rating: 4.5, tag: '🥤' },
-    { id: 17, name: 'Frooti Mango', variant: '200 ml', price: 10, mrp: 10, cat: 'Drinks', color: '#F9A825', bg: '#FFFDE7', rating: 4.3, tag: '🧃' },
-    { id: 29, name: 'Thums Up', variant: '300 ml', price: 35, mrp: 40, cat: 'Drinks', color: '#1B5E20', bg: '#E8F5E9', rating: 4.5, tag: '⚡' },
-    { id: 30, name: 'Appy Fizz', variant: '250 ml', price: 25, mrp: 30, cat: 'Drinks', color: '#BF360C', bg: '#FBE9E7', rating: 4.4, tag: '🍎' },
-    { id: 31, name: 'Real Guava Juice', variant: '200 ml', price: 20, mrp: 25, cat: 'Drinks', color: '#2E7D32', bg: '#E8F5E9', rating: 4.3, tag: '🍈' },
+    { id: 13, name: 'Amul Taaza Milk', variant: '500 ml', price: 30, mrp: 30, cat: 'Drinks', color: '#D84315', bg: '#FBE9E7', rating: 4.4, img: 'https://www.amul.com/m/uploads/taaza-500ml.jpg' },
+    { id: 14, name: 'Red Bull Energy Drink', variant: '250 ml', price: 115, mrp: 125, cat: 'Drinks', color: '#1565C0', bg: '#E3F2FD', rating: 4.6, img: 'https://assets.redbull.com/images/upload/f_auto,q_auto/redbull-energy-drink-250ml-can.png' },
+    { id: 15, name: 'Paper Boat Aamras', variant: '200 ml', price: 30, mrp: 30, cat: 'Drinks', color: '#F57F17', bg: '#FFF8E1', rating: 4.7, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40186073-1-paper-boat-aamras.jpg' },
+    { id: 16, name: 'Coca-Cola', variant: '300 ml', price: 35, mrp: 40, cat: 'Drinks', color: '#B71C1C', bg: '#FFEBEE', rating: 4.5, img: 'https://www.coca-cola.com/content/dam/one/us/en/articles/2022/09/coca-cola-can.png' },
+    { id: 17, name: 'Frooti Mango', variant: '200 ml', price: 10, mrp: 10, cat: 'Drinks', color: '#F9A825', bg: '#FFFDE7', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40050613_3-parle-agro-frooti-mango-fresh-n-juicy.jpg' },
+    { id: 29, name: 'Thums Up', variant: '300 ml', price: 35, mrp: 40, cat: 'Drinks', color: '#1B5E20', bg: '#E8F5E9', rating: 4.5, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40046786_4-thums-up.jpg' },
+    { id: 30, name: 'Appy Fizz', variant: '250 ml', price: 25, mrp: 30, cat: 'Drinks', color: '#BF360C', bg: '#FBE9E7', rating: 4.4, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40069985_4-parle-agro-appy-fizz.jpg' },
+    { id: 31, name: 'Real Guava Juice', variant: '200 ml', price: 20, mrp: 25, cat: 'Drinks', color: '#2E7D32', bg: '#E8F5E9', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40003064_7-dabur-real-juice-guava.jpg' },
   ],
   instantfood: [
-    { id: 32, name: 'Cup Noodles Masala', variant: '70 g', price: 45, mrp: 50, cat: 'Instant Food', color: '#D84315', bg: '#FBE9E7', rating: 4.4, tag: '🍜' },
-    { id: 33, name: 'MTR Ready Poha', variant: '180 g', price: 60, mrp: 70, cat: 'Instant Food', color: '#388E3C', bg: '#E8F5E9', rating: 4.6, tag: '🍛' },
-    { id: 34, name: 'MTR Upma Mix', variant: '170 g', price: 55, mrp: 60, cat: 'Instant Food', color: '#F57F17', bg: '#FFF8E1', rating: 4.5, tag: '🥘' },
-    { id: 35, name: 'Knorr Tomato Soup', variant: '12 g', price: 10, mrp: 10, cat: 'Instant Food', color: '#C62828', bg: '#FFEBEE', rating: 4.2, tag: '🥣' },
-    { id: 36, name: 'Top Ramen Curry', variant: '70 g', price: 12, mrp: 14, cat: 'Instant Food', color: '#E65100', bg: '#FFF3E0', rating: 4.3, tag: '🍝' },
-    { id: 37, name: 'Wai Wai Noodles', variant: '75 g', price: 15, mrp: 15, cat: 'Instant Food', color: '#AD1457', bg: '#FCE4EC', rating: 4.5, tag: '🍜' },
+    { id: 32, name: 'Cup Noodles Masala', variant: '70 g', price: 45, mrp: 50, cat: 'Instant Food', color: '#D84315', bg: '#FBE9E7', rating: 4.4, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40099765_4-nissin-cup-noodles-masala.jpg' },
+    { id: 33, name: 'MTR Ready Poha', variant: '180 g', price: 60, mrp: 70, cat: 'Instant Food', color: '#388E3C', bg: '#E8F5E9', rating: 4.6, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40223710_3-mtr-ready-to-eat-poha.jpg' },
+    { id: 34, name: 'MTR Upma Mix', variant: '170 g', price: 55, mrp: 60, cat: 'Instant Food', color: '#F57F17', bg: '#FFF8E1', rating: 4.5, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40069888_3-mtr-upma-mix.jpg' },
+    { id: 35, name: 'Knorr Tomato Soup', variant: '12 g', price: 10, mrp: 10, cat: 'Instant Food', color: '#C62828', bg: '#FFEBEE', rating: 4.2, img: 'https://www.bigbasket.com/media/uploads/p/xxl/221568_7-knorr-classic-tomato-soup.jpg' },
+    { id: 36, name: 'Top Ramen Curry', variant: '70 g', price: 12, mrp: 14, cat: 'Instant Food', color: '#E65100', bg: '#FFF3E0', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40087977_5-nissin-top-ramen-curry.jpg' },
+    { id: 37, name: 'Wai Wai Noodles', variant: '75 g', price: 15, mrp: 15, cat: 'Instant Food', color: '#AD1457', bg: '#FCE4EC', rating: 4.5, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40218870_4-wai-wai-noodles-chicken-flavour.jpg' },
   ],
   pharma: [
-    { id: 19, name: 'Crocin Advance', variant: '10 Tabs', price: 18, mrp: 22, cat: 'Pharma', color: '#1565C0', bg: '#E3F2FD', rating: 4.8, tag: '💊' },
-    { id: 20, name: 'Volini Pain Spray', variant: '15 g', price: 72, mrp: 80, cat: 'Pharma', color: '#2E7D32', bg: '#E8F5E9', rating: 4.6, tag: '🏥' },
-    { id: 21, name: 'Band-Aid Flexible', variant: '10 Strips', price: 25, mrp: 25, cat: 'Pharma', color: '#C62828', bg: '#FFEBEE', rating: 4.5, tag: '🩹' },
-    { id: 22, name: 'ENO Antacid', variant: '5g × 6', price: 30, mrp: 30, cat: 'Pharma', color: '#1565C0', bg: '#E3F2FD', rating: 4.7, tag: '🧪' },
-    { id: 38, name: 'Digene Tablet', variant: '15 Tabs', price: 25, mrp: 30, cat: 'Pharma', color: '#6A1B9A', bg: '#F3E5F5', rating: 4.4, tag: '💊' },
-    { id: 39, name: 'Vicks VapoRub', variant: '10 ml', price: 32, mrp: 35, cat: 'Pharma', color: '#00695C', bg: '#E0F2F1', rating: 4.5, tag: '🌿' },
+    { id: 19, name: 'Crocin Advance', variant: '10 Tabs', price: 18, mrp: 22, cat: 'Pharma', color: '#1565C0', bg: '#E3F2FD', rating: 4.8, img: 'https://www.netmeds.com/images/product-v1/600x600/386793/crocin_advance_tablet_10s_0.jpg' },
+    { id: 20, name: 'Volini Pain Spray', variant: '15 g', price: 72, mrp: 80, cat: 'Pharma', color: '#2E7D32', bg: '#E8F5E9', rating: 4.6, img: 'https://www.netmeds.com/images/product-v1/600x600/11399/volini_spray_40g_0.jpg' },
+    { id: 21, name: 'Band-Aid Flexible', variant: '10 Strips', price: 25, mrp: 25, cat: 'Pharma', color: '#C62828', bg: '#FFEBEE', rating: 4.5, img: 'https://www.netmeds.com/images/product-v1/600x600/436302/band_aid_flexible_fabric_10s_0.jpg' },
+    { id: 22, name: 'ENO Antacid', variant: '5g × 6', price: 30, mrp: 30, cat: 'Pharma', color: '#1565C0', bg: '#E3F2FD', rating: 4.7, img: 'https://www.netmeds.com/images/product-v1/600x600/8393/eno_fruit_salt_sachets_5g_x_6s_0.jpg' },
+    { id: 38, name: 'Digene Tablet', variant: '15 Tabs', price: 25, mrp: 30, cat: 'Pharma', color: '#6A1B9A', bg: '#F3E5F5', rating: 4.4, img: 'https://www.netmeds.com/images/product-v1/600x600/15965/digene_tablet_15_0.jpg' },
+    { id: 39, name: 'Vicks VapoRub', variant: '10 ml', price: 32, mrp: 35, cat: 'Pharma', color: '#00695C', bg: '#E0F2F1', rating: 4.5, img: 'https://www.netmeds.com/images/product-v1/600x600/8234/vicks_vaporub_10_ml_0.jpg' },
   ],
   hygiene: [
-    { id: 24, name: 'Colgate MaxFresh', variant: '80 g', price: 65, mrp: 72, cat: 'Hygiene', color: '#C62828', bg: '#FFEBEE', rating: 4.5, tag: '🪥' },
-    { id: 40, name: 'Nivea Face Cream', variant: '20 ml', price: 35, mrp: 40, cat: 'Hygiene', color: '#1565C0', bg: '#E3F2FD', rating: 4.3, tag: '🧴' },
-    { id: 41, name: 'Head & Shoulders', variant: '7.5ml×4', price: 16, mrp: 16, cat: 'Hygiene', color: '#00695C', bg: '#E0F2F1', rating: 4.2, tag: '💆' },
-    { id: 42, name: 'Closeup Toothpaste', variant: '50 g', price: 38, mrp: 42, cat: 'Hygiene', color: '#C62828', bg: '#FFEBEE', rating: 4.4, tag: '🦷' },
-    { id: 43, name: 'Lifebuoy Hand Wash', variant: '50 ml', price: 20, mrp: 22, cat: 'Hygiene', color: '#C62828', bg: '#FFCDD2', rating: 4.3, tag: '🫧' },
+    { id: 24, name: 'Colgate MaxFresh', variant: '80 g', price: 65, mrp: 72, cat: 'Hygiene', color: '#C62828', bg: '#FFEBEE', rating: 4.5, img: 'https://www.colgate.com/content/dam/cp-sites/oral-care/oral-care-center/en-in/brand/colgate-max-fresh/colgate-max-fresh-toothpaste-spicy-fresh.png' },
+    { id: 40, name: 'Nivea Face Cream', variant: '20 ml', price: 35, mrp: 40, cat: 'Hygiene', color: '#1565C0', bg: '#E3F2FD', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40023786_12-nivea-soft-moisturising-creme.jpg' },
+    { id: 41, name: 'Head & Shoulders', variant: '7.5ml×4', price: 16, mrp: 16, cat: 'Hygiene', color: '#00695C', bg: '#E0F2F1', rating: 4.2, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40040065_7-head-shoulders-cool-menthol-shampoo.jpg' },
+    { id: 42, name: 'Closeup Toothpaste', variant: '50 g', price: 38, mrp: 42, cat: 'Hygiene', color: '#C62828', bg: '#FFEBEE', rating: 4.4, img: 'https://www.bigbasket.com/media/uploads/p/xxl/267056_7-close-up-deep-action-red-hot-toothpaste.jpg' },
+    { id: 43, name: 'Lifebuoy Hand Wash', variant: '50 ml', price: 20, mrp: 22, cat: 'Hygiene', color: '#C62828', bg: '#FFCDD2', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40182099_3-lifebuoy-total-10-hand-wash.jpg' },
   ],
   essentials: [
-    { id: 23, name: 'Tissues Travel Pack', variant: '10 Sheets', price: 10, mrp: 10, cat: 'Essentials', color: '#5D4037', bg: '#EFEBE9', rating: 4.2, tag: '🧻' },
-    { id: 25, name: 'N95 Face Mask', variant: 'Pack of 3', price: 45, mrp: 60, cat: 'Essentials', color: '#1565C0', bg: '#E3F2FD', rating: 4.6, tag: '😷' },
-    { id: 26, name: 'Sleep Eye Mask', variant: '1 Piece', price: 35, mrp: 50, cat: 'Essentials', color: '#311B92', bg: '#EDE7F6', rating: 4.4, tag: '🌙' },
-    { id: 45, name: 'Earplugs Pair', variant: '1 Pair', price: 15, mrp: 20, cat: 'Essentials', color: '#F57F17', bg: '#FFF8E1', rating: 4.3, tag: '🔇' },
-    { id: 46, name: 'Type-C Charger Cable', variant: '1 m', price: 99, mrp: 149, cat: 'Essentials', color: '#37474F', bg: '#ECEFF1', rating: 4.5, tag: '🔌' },
-    { id: 47, name: 'Travel Neck Pillow', variant: '1 Piece', price: 120, mrp: 199, cat: 'Essentials', color: '#6A1B9A', bg: '#F3E5F5', rating: 4.7, tag: '🛏️' },
-    { id: 48, name: 'Wet Wipes Pack', variant: '10 Wipes', price: 20, mrp: 25, cat: 'Essentials', color: '#00695C', bg: '#E0F2F1', rating: 4.3, tag: '🧽' },
+    { id: 23, name: 'Tissues Travel Pack', variant: '10 Sheets', price: 10, mrp: 10, cat: 'Essentials', color: '#5D4037', bg: '#EFEBE9', rating: 4.2, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40037012_3-kleenex-travel-soft-tissues.jpg' },
+    { id: 25, name: 'N95 Face Mask', variant: 'Pack of 3', price: 45, mrp: 60, cat: 'Essentials', color: '#1565C0', bg: '#E3F2FD', rating: 4.6, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40175956_2-3m-n95-air-pollution-mask.jpg' },
+    { id: 26, name: 'Sleep Eye Mask', variant: '1 Piece', price: 35, mrp: 50, cat: 'Essentials', color: '#311B92', bg: '#EDE7F6', rating: 4.4, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40060025_4-strauss-eye-mask.jpg' },
+    { id: 45, name: 'Earplugs Pair', variant: '1 Pair', price: 15, mrp: 20, cat: 'Essentials', color: '#F57F17', bg: '#FFF8E1', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40093060_3-3m-ear-classic-earplugs.jpg' },
+    { id: 46, name: 'Type-C Charger Cable', variant: '1 m', price: 99, mrp: 149, cat: 'Essentials', color: '#37474F', bg: '#ECEFF1', rating: 4.5, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40220380_4-ambrane-rb-11s-usb-type-c-cable.jpg' },
+    { id: 47, name: 'Travel Neck Pillow', variant: '1 Piece', price: 120, mrp: 199, cat: 'Essentials', color: '#6A1B9A', bg: '#F3E5F5', rating: 4.7, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40092618_4-house-of-quirk-memory-foam-neck-pillow.jpg' },
+    { id: 48, name: 'Wet Wipes Pack', variant: '10 Wipes', price: 20, mrp: 25, cat: 'Essentials', color: '#00695C', bg: '#E0F2F1', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40161714_3-himalaya-baby-wipes.jpg' },
   ],
 }
 
@@ -172,22 +172,31 @@ function PNRScreen({ onLogin }) {
 }
 
 // ============================================================
-// PRODUCT CARD (branded tile — no emojis in display)
+// PRODUCT CARD — real product images
 // ============================================================
 function ProductCard({ product, qty, onAdd, onRemove }) {
   const discount = product.mrp > product.price
     ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0
+  const [imgFailed, setImgFailed] = useState(false)
 
   return (
     <motion.div className="bk-product-card"
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
     >
       <div className="bk-img-wrap" style={{ background: product.bg || '#f5f5f5' }}>
-        <div className="product-tile-inner">
-          <span className="product-tile-tag">{product.tag}</span>
-          <span className="product-tile-brand" style={{ color: product.color }}>{product.name}</span>
-          <span className="product-tile-variant">{product.variant}</span>
-        </div>
+        {!imgFailed && product.img ? (
+          <img
+            className="product-real-img"
+            src={product.img}
+            alt={product.name}
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <div className="product-tile-inner">
+            <span className="product-tile-brand" style={{ color: product.color, fontSize: 13, fontWeight: 800, textAlign: 'center' }}>{product.name}</span>
+            <span className="product-tile-variant">{product.variant}</span>
+          </div>
+        )}
         {discount > 0 && <div className="bk-discount">{discount}% OFF</div>}
       </div>
 
@@ -234,7 +243,7 @@ function Toast({ message }) {
 }
 
 // ============================================================
-// CART DRAWER
+// CART DRAWER (inline)
 // ============================================================
 function CartDrawer({ cart, pnrData, onClose, onCheckout, onAdd, onRemove }) {
   const items = Object.values(cart)
@@ -251,7 +260,6 @@ function CartDrawer({ cart, pnrData, onClose, onCheckout, onAdd, onRemove }) {
     >
       <div style={{ position: 'absolute', inset: 0 }} onClick={onClose} />
       <motion.div className="bk-drawer-sheet"
-        onClick={(e) => e.stopPropagation()}
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 320 }}
       >
@@ -273,7 +281,11 @@ function CartDrawer({ cart, pnrData, onClose, onCheckout, onAdd, onRemove }) {
           {items.map(item => (
             <div className="bk-cart-item" key={item.id}>
               <div className="bk-cart-item-img" style={{ background: item.bg || '#f5f5f5' }}>
-                <span style={{ fontSize: 22 }}>{item.tag || item.name[0]}</span>
+                {item.img
+                  ? <img src={item.img} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 8 }}
+                    onError={e => { e.target.style.display = 'none' }} />
+                  : <span style={{ fontSize: 22 }}>{item.name[0]}</span>
+                }
               </div>
               <div className="bk-cart-item-info">
                 <div className="bk-cart-item-name">{item.name}</div>
@@ -319,15 +331,83 @@ function CartDrawer({ cart, pnrData, onClose, onCheckout, onAdd, onRemove }) {
 }
 
 // ============================================================
-// ORDER TRACKING (realistic flow)
+// PAYMENT MODAL
+// ============================================================
+function PaymentModal({ grand, onPay, onClose }) {
+  const [selected, setSelected] = useState('upi')
+  const [paying, setPaying] = useState(false)
+
+  const methods = [
+    { id: 'upi', label: 'UPI / GPay / PhonePe', icon: <Smartphone size={20} />, sub: 'Instant & secure' },
+    { id: 'card', label: 'Credit / Debit Card', icon: <CreditCard size={20} />, sub: 'Visa · Mastercard · RuPay' },
+    { id: 'cash', label: 'Pay at Delivery', icon: <IndianRupee size={20} />, sub: 'Pay when delivered to seat' },
+  ]
+
+  const handlePay = () => {
+    setPaying(true)
+    setTimeout(() => { onPay() }, 1400)
+  }
+
+  return (
+    <motion.div className="pay-overlay"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+    >
+      <div style={{ position: 'absolute', inset: 0 }} onClick={onClose} />
+      <motion.div className="pay-sheet"
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 320 }}
+      >
+        <div className="bk-drawer-handle" />
+        <div className="pay-header">
+          <div className="pay-title">Choose Payment</div>
+          <button className="bk-drawer-close" onClick={onClose}><X size={16} /></button>
+        </div>
+
+        <div className="pay-amount-chip">
+          <IndianRupee size={16} /> Total: <strong>₹{grand}</strong>
+        </div>
+
+        <div className="pay-methods">
+          {methods.map(m => (
+            <div key={m.id} className={`pay-method ${selected === m.id ? 'active' : ''}`}
+              onClick={() => setSelected(m.id)}
+            >
+              <div className="pay-method-icon">{m.icon}</div>
+              <div className="pay-method-info">
+                <div className="pay-method-label">{m.label}</div>
+                <div className="pay-method-sub">{m.sub}</div>
+              </div>
+              <div className={`pay-radio ${selected === m.id ? 'on' : ''}`} />
+            </div>
+          ))}
+        </div>
+
+        <div className="pay-footer">
+          <motion.button className="pay-now-btn" onClick={handlePay} disabled={paying}
+            whileTap={{ scale: 0.97 }}
+          >
+            {paying
+              ? <><div className="pnr-spinner" style={{ width: 18, height: 18, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} /> Processing...</>
+              : <>{selected === 'cash' ? 'Confirm Order' : `Pay ₹${grand}`} <ChevronRight size={18} /></>
+            }
+          </motion.button>
+          <p className="pay-secure-note">🔒 100% Secure Payment</p>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// ============================================================
+// ORDER TRACKING
 // ============================================================
 function OrderTracking({ onComplete, pnrData, orderInfo }) {
   const [step, setStep] = useState(0)
   useEffect(() => {
-    const t1 = setTimeout(() => setStep(1), 1800)
-    const t2 = setTimeout(() => setStep(2), 4000)
-    const t3 = setTimeout(() => setStep(3), 6500)
-    const t4 = setTimeout(() => onComplete(), 8500)
+    const t1 = setTimeout(() => setStep(1), 2500)
+    const t2 = setTimeout(() => setStep(2), 5500)
+    const t3 = setTimeout(() => setStep(3), 9000)
+    const t4 = setTimeout(() => onComplete(), 12000)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
   }, [onComplete])
 
@@ -389,6 +469,7 @@ function App() {
   const [pnrData, setPnrData] = useState(null)
   const [cart, setCart] = useState({})
   const [cartOpen, setCartOpen] = useState(false)
+  const [paymentOpen, setPaymentOpen] = useState(false)
   const [ordering, setOrdering] = useState(false)
   const [orderDone, setOrderDone] = useState(false)
   const [orderInfo, setOrderInfo] = useState(null)
@@ -430,9 +511,16 @@ function App() {
     return mc && ms
   })
 
-  const handleCheckout = () => {
+  // "Place Order" in cart drawer → open payment modal
+  const handleOpenPayment = () => {
+    setCartOpen(false)
+    setTimeout(() => setPaymentOpen(true), 300)
+  }
+
+  // After payment confirmed → build orderInfo → start animation
+  const handleConfirmPayment = () => {
     const items = Object.values(cart)
-    const totalItems = items.reduce((s, i) => s + i.qty, 0)
+    const totalItemsCount = items.reduce((s, i) => s + i.qty, 0)
     const itemTotal = items.reduce((s, i) => s + i.price * i.qty, 0)
     const mrpTotal = items.reduce((s, i) => s + i.mrp * i.qty, 0)
     const savings = mrpTotal - itemTotal
@@ -441,8 +529,8 @@ function App() {
     const placedAt = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     setOrderInfo({
       orderId,
-      items: items.map(i => ({ name: i.name, variant: i.variant, qty: i.qty, price: i.price, tag: i.tag })),
-      totalItems,
+      items: items.map(i => ({ name: i.name, variant: i.variant, qty: i.qty, price: i.price, img: i.img, bg: i.bg })),
+      totalItems: totalItemsCount,
       itemTotal,
       mrpTotal,
       savings,
@@ -450,16 +538,16 @@ function App() {
       handling,
       placedAt,
     })
-    setCart({})
-    setCartOpen(false)
-    setOrdering(true)
+    setPaymentOpen(false)
+    setTimeout(() => setOrdering(true), 200)
   }
+
   const handleComplete = useCallback(() => { setOrdering(false); setOrderDone(true) }, [])
 
   // ===== PNR LOGIN =====
   if (!pnrData) return <PNRScreen onLogin={setPnrData} />
 
-  // ===== SUCCESS SCREEN (REAL RECEIPT) =====
+  // ===== SUCCESS SCREEN =====
   if (orderDone && orderInfo) {
     return (
       <div className="app-shell">
@@ -492,7 +580,13 @@ function App() {
               <div className="receipt-section-title">Items Ordered</div>
               {orderInfo.items.map((item, i) => (
                 <div className="receipt-item" key={i}>
-                  <span className="receipt-item-tag">{item.tag}</span>
+                  <div className="receipt-item-img" style={{ background: item.bg || '#f5f5f5' }}>
+                    {item.img
+                      ? <img src={item.img} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        onError={e => { e.target.style.display = 'none' }} />
+                      : <span style={{ fontSize: 14, fontWeight: 800 }}>{item.name[0]}</span>
+                    }
+                  </div>
                   <div className="receipt-item-info">
                     <span className="receipt-item-name">{item.name}</span>
                     <span className="receipt-item-variant">{item.variant} × {item.qty}</span>
@@ -525,7 +619,8 @@ function App() {
   return (
     <div className="app-shell">
       <AnimatePresence>{ordering && <OrderTracking onComplete={handleComplete} pnrData={pnrData} orderInfo={orderInfo} />}</AnimatePresence>
-      <AnimatePresence>{cartOpen && <CartDrawer cart={cart} pnrData={pnrData} onClose={() => setCartOpen(false)} onCheckout={handleCheckout} onAdd={addToCart} onRemove={removeFromCart} />}</AnimatePresence>
+      <AnimatePresence>{cartOpen && <CartDrawer cart={cart} pnrData={pnrData} onClose={() => setCartOpen(false)} onCheckout={handleOpenPayment} onAdd={addToCart} onRemove={removeFromCart} />}</AnimatePresence>
+      <AnimatePresence>{paymentOpen && <PaymentModal grand={Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0) + 5} onPay={handleConfirmPayment} onClose={() => setPaymentOpen(false)} />}</AnimatePresence>
       <AnimatePresence>{toast && <Toast message={toast} />}</AnimatePresence>
 
       {/* HEADER */}
@@ -621,8 +716,8 @@ function App() {
               </div>
               <div className="bk-offer-card" style={{ background: 'linear-gradient(135deg, #6a1b9a 0%, #ab47bc 100%)' }}>
                 <div>
-                  <div className="bk-offer-title">Instant Food — Hot & Ready</div>
-                  <div className="bk-offer-sub">Maggi, MTR Poha & more</div>
+                  <div className="bk-offer-title">Instant Food — Hot &amp; Ready</div>
+                  <div className="bk-offer-sub">Maggi, MTR Poha &amp; more</div>
                 </div>
                 <span className="bk-offer-emoji">🍜</span>
               </div>
