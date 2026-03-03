@@ -1,769 +1,908 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react'
-import { Search, ChevronDown, ChevronRight, User, Clock, Zap, X, Package, Truck, CheckCircle2, MapPin, Star, Shield, ArrowRight, Hash, UserCircle, Receipt, IndianRupee, CreditCard, Smartphone, Wallet } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import {
+  Search, ChevronRight, Zap, X, Package, Truck, CheckCircle2,
+  ArrowRight, Calendar, Lock, AlertCircle, ArrowLeft, Timer,
+  Shield, Home, Grid3X3, ShoppingBag, Star, Gift, Tag, Flame,
+  Bolt, TrendingUp, MessageCircle, Phone
+} from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './index.css'
 
-// ============================================================
-// PNR MOCK LOOKUP
-// ============================================================
-function lookupPNR(pnr) {
-  const coaches = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']
-  const seats = ['A', 'B', 'C', 'D']
-  if (pnr.length < 6) return null
-  return {
-    train: 'Vande Bharat Express',
-    trainNo: '22436',
-    route: 'New Delhi → Varanasi',
-    coach: coaches[parseInt(pnr[2] || '3') % 8],
-    seat: (parseInt(pnr.slice(-2)) || 24) + seats[parseInt(pnr[3] || '0') % 4],
-    date: '01 Mar 2026',
-    departure: '06:00 AM',
+// ──────────────────────────────────────────────────────────────
+// SHEETDB INTEGRATION
+// Orders are automatically saved to Google Sheets via SheetDB API
+// ──────────────────────────────────────────────────────────────
+const SHEETDB_URL = 'https://sheetdb.io/api/v1/6z3vh2kf9d5g5'
+
+async function saveOrderToSheet(data) {
+  try {
+    const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    const items = data.items.map(i => `${i.name} x${i.qty}`).join(' | ')
+
+    const payload = {
+      data: [{
+        'Timestamp': now,
+        'Order ID': data.orderId,
+        'Customer Name': data.name,
+        'Seat/Berth': data.seat,
+        'Mobile': data.contact,
+        'Items Ordered': items,
+        'Total (Rs)': data.grand,
+        'Train No.': data.trainNo,
+      }]
+    }
+
+    const res = await fetch(SHEETDB_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    if (res.ok) {
+      console.log('✅ Order saved to Google Sheet')
+    }
+  } catch (e) {
+    console.warn('Sheet save failed (non-critical):', e)
   }
 }
 
-// ============================================================
-// CATEGORIES
-// ============================================================
-const CATEGORIES = [
-  { name: 'Essentials', icon: '📦', bg: '#FFF3E0' },
-  { name: 'Snacks', icon: '🍿', bg: '#FFF8E1' },
-  { name: 'Drinks', icon: '🥤', bg: '#E8F5E9' },
-  { name: 'Pharma', icon: '💊', bg: '#E3F2FD' },
-  { name: 'Hygiene', icon: '🧴', bg: '#FCE4EC' },
-  { name: 'Instant Food', icon: '🍜', bg: '#FFF3E0' },
-  { name: 'Sweets', icon: '🍫', bg: '#F3E5F5' },
-  { name: 'Stationery', icon: '✏️', bg: '#E0F7FA' },
+// ──────────────────────────────────────────────────────────────
+// DATA
+// ──────────────────────────────────────────────────────────────
+const TRAINS = [
+  {
+    id: 'train-14662', trainNo: '14662', name: 'Shalimar Malani Express',
+    from: 'Delhi', to: 'Jaipur', date: '5 March 2026',
+    departure: '11:00 AM', arrival: '6:30 PM',
+    serviceStart: new Date('2026-03-05T11:00:00+05:30'),
+    serviceEnd: new Date('2026-03-05T18:30:00+05:30'),
+  },
+  {
+    id: 'train-14661', trainNo: '14661', name: 'Shalimar Malani Express',
+    from: 'Jaipur', to: 'Delhi', date: '6 March 2026',
+    departure: '8:00 AM', arrival: '6:00 PM',
+    serviceStart: new Date('2026-03-06T08:00:00+05:30'),
+    serviceEnd: new Date('2026-03-06T18:00:00+05:30'),
+  },
 ]
 
-// ============================================================
-// PRODUCTS — real CDN images
-// ============================================================
+const CATEGORIES = [
+  { name: 'Essentials', icon: 'https://cdn-icons-png.flaticon.com/128/2331/2331966.png' },
+  { name: 'Snacks', icon: 'https://cdn-icons-png.flaticon.com/128/2553/2553691.png' },
+  { name: 'Drinks', icon: 'https://cdn-icons-png.flaticon.com/128/3050/3050131.png' },
+  { name: 'Pharma', icon: 'https://cdn-icons-png.flaticon.com/128/3140/3140343.png' },
+  { name: 'Hygiene', icon: 'https://cdn-icons-png.flaticon.com/128/2553/2553642.png' },
+  { name: 'Instant', icon: 'https://cdn-icons-png.flaticon.com/128/1046/1046857.png' },
+  { name: 'Sweets', icon: 'https://cdn-icons-png.flaticon.com/128/3373/3373065.png' },
+  { name: 'Travel', icon: 'https://cdn-icons-png.flaticon.com/128/3124/3124073.png' },
+]
+
 const PRODUCTS = {
   best: [
-    { id: 1, name: 'Bisleri Water', variant: '1 L', price: 20, mrp: 20, cat: 'Drinks', color: '#1565C0', bg: '#E3F2FD', rating: 4.8, img: 'https://www.bisleri.com/cdn/shop/files/Bisleri_1L_1.jpg?v=1716872993&width=600' },
-    { id: 2, name: "Lay's Classic Salted", variant: '52 g', price: 20, mrp: 20, cat: 'Snacks', color: '#E65100', bg: '#FFF8E1', rating: 4.5, img: 'https://www.lays.in/sites/g/files/fnmzdf1071/files/2022-08/lays_classic_salted.png' },
-    { id: 3, name: 'Dolo 650 Tablet', variant: '15 Tabs', price: 30, mrp: 35, cat: 'Pharma', color: '#C62828', bg: '#FFEBEE', rating: 4.9, img: 'https://www.netmeds.com/images/product-v1/600x600/902498/dolo_650mg_tablet_15s_0.jpg' },
-    { id: 4, name: 'Chai Point Masala Chai', variant: '200 ml', price: 40, mrp: 50, cat: 'Drinks', color: '#4E342E', bg: '#EFEBE9', rating: 4.7, img: 'https://images.jdmagicbox.com/comp/def_content/tea-and-coffee-shop/default-tea-and-coffee-shop-14.jpg' },
-    { id: 5, name: 'Maggi 2-Minute Noodles', variant: '70 g', price: 14, mrp: 14, cat: 'Instant Food', color: '#F9A825', bg: '#FFF8E1', rating: 4.6, img: 'https://www.maggi.in/sites/default/files/styles/transparent_png_product_detail/public/2022-04/MAGGI%202-Min-MasalaNoodles_70g_Front.png' },
-    { id: 6, name: 'Dettol Hand Sanitizer', variant: '50 ml', price: 29, mrp: 29, cat: 'Hygiene', color: '#2E7D32', bg: '#E8F5E9', rating: 4.4, img: 'https://www.dettol.co.in/images/dettol-hand-sanitizer-50ml.jpg' },
+    { id: 1, name: 'Bisleri Water', variant: '1 L', price: 20, mrp: 20, img: 'https://images.jdmagicbox.com/quickquotes/images_main/bisleri-water-bottle-1-litre-297413498-dlh4a.jpg' },
+    { id: 2, name: "Lay's Classic Salted", variant: '52 g', price: 20, mrp: 20, img: 'https://m.media-amazon.com/images/I/81aF2UPFPUL._SL1500_.jpg' },
+    { id: 3, name: 'Dolo 650 Tablet', variant: '15 Tabs', price: 30, mrp: 35, img: 'https://www.netmeds.com/images/product-v1/600x600/902498/dolo_650mg_tablet_15s_0.jpg' },
+    { id: 4, name: 'Masala Chai', variant: '200 ml', price: 40, mrp: 50, img: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80' },
+    { id: 5, name: 'Maggi 2-Min Noodles', variant: '70 g', price: 14, mrp: 14, img: 'https://m.media-amazon.com/images/I/71A4lZzwIAL._SL1500_.jpg' },
+    { id: 6, name: 'Dettol Sanitizer', variant: '50 ml', price: 29, mrp: 35, img: 'https://m.media-amazon.com/images/I/51iS-FsCv2L._SL1000_.jpg' },
   ],
   snacks: [
-    { id: 7, name: 'Kurkure Masala Munch', variant: '75 g', price: 20, mrp: 20, cat: 'Snacks', color: '#BF360C', bg: '#FBE9E7', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40111456_4-kurkure-masala-munch.jpg' },
-    { id: 8, name: 'Cadbury Dairy Milk Silk', variant: '60 g', price: 80, mrp: 90, cat: 'Sweets', color: '#4A148C', bg: '#F3E5F5', rating: 4.8, img: 'https://www.cadbury.co.in/wp-content/uploads/2020/12/CDMS-60g-Front.png' },
-    { id: 9, name: 'Parle-G Gold Biscuits', variant: '100 g', price: 20, mrp: 20, cat: 'Snacks', color: '#F57F17', bg: '#FFF8E1', rating: 4.5, img: 'https://www.parleproducts.com/storage/uploads/product/Parle-G_Gold_100g_pack.png' },
-    { id: 10, name: 'Oreo Original Cream', variant: '120 g', price: 30, mrp: 35, cat: 'Snacks', color: '#1A237E', bg: '#E8EAF6', rating: 4.6, img: 'https://www.oreo.in/sites/g/files/fnmzdf706/files/2020-08/Oreo-Original-Cream-120g.png' },
-    { id: 11, name: "Haldiram's Aloo Bhujia", variant: '200 g', price: 55, mrp: 60, cat: 'Snacks', color: '#E65100', bg: '#FFF3E0', rating: 4.7, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40168055_3-haldirams-aloo-bhujia.jpg' },
-    { id: 12, name: 'Dark Fantasy Choco Fills', variant: '75 g', price: 40, mrp: 40, cat: 'Snacks', color: '#3E2723', bg: '#EFEBE9', rating: 4.4, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40234156_2-sunfeast-dark-fantasy-choco-fills.jpg' },
-    { id: 27, name: "Haldiram's Soan Papdi", variant: '250 g', price: 75, mrp: 85, cat: 'Sweets', color: '#FF8F00', bg: '#FFF8E1', rating: 4.5, img: 'https://www.bigbasket.com/media/uploads/p/xxl/267065_3-haldirams-soan-papdi.jpg' },
-    { id: 28, name: 'Balaji Wafers', variant: '60 g', price: 15, mrp: 15, cat: 'Snacks', color: '#558B2F', bg: '#F1F8E9', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40088960_3-balaji-simply-salted-wafers.jpg' },
+    { id: 7, name: 'Kurkure Masala', variant: '75 g', price: 20, mrp: 20, img: 'https://m.media-amazon.com/images/I/81X7baxhvBL._SL1500_.jpg' },
+    { id: 8, name: 'Dairy Milk Silk', variant: '60 g', price: 80, mrp: 90, img: 'https://m.media-amazon.com/images/I/71hHVJIBFVL._SL1500_.jpg' },
+    { id: 9, name: 'Parle-G Gold', variant: '100 g', price: 20, mrp: 20, img: 'https://m.media-amazon.com/images/I/61-+pBR9N-L._SL1200_.jpg' },
+    { id: 10, name: 'Haldiram Bhujia', variant: '200 g', price: 55, mrp: 60, img: 'https://m.media-amazon.com/images/I/71EWvgmGv6L._SL1500_.jpg' },
+    { id: 17, name: 'KitKat 4F', variant: '41.5 g', price: 60, mrp: 65, img: 'https://m.media-amazon.com/images/I/61oKH1tePbL._SL1500_.jpg' },
+    { id: 18, name: 'Oreo Original', variant: '120 g', price: 35, mrp: 40, img: 'https://m.media-amazon.com/images/I/61w3JGh8d8L._SL1500_.jpg' },
   ],
   drinks: [
-    { id: 13, name: 'Amul Taaza Milk', variant: '500 ml', price: 30, mrp: 30, cat: 'Drinks', color: '#D84315', bg: '#FBE9E7', rating: 4.4, img: 'https://www.amul.com/m/uploads/taaza-500ml.jpg' },
-    { id: 14, name: 'Red Bull Energy Drink', variant: '250 ml', price: 115, mrp: 125, cat: 'Drinks', color: '#1565C0', bg: '#E3F2FD', rating: 4.6, img: 'https://assets.redbull.com/images/upload/f_auto,q_auto/redbull-energy-drink-250ml-can.png' },
-    { id: 15, name: 'Paper Boat Aamras', variant: '200 ml', price: 30, mrp: 30, cat: 'Drinks', color: '#F57F17', bg: '#FFF8E1', rating: 4.7, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40186073-1-paper-boat-aamras.jpg' },
-    { id: 16, name: 'Coca-Cola', variant: '300 ml', price: 35, mrp: 40, cat: 'Drinks', color: '#B71C1C', bg: '#FFEBEE', rating: 4.5, img: 'https://www.coca-cola.com/content/dam/one/us/en/articles/2022/09/coca-cola-can.png' },
-    { id: 17, name: 'Frooti Mango', variant: '200 ml', price: 10, mrp: 10, cat: 'Drinks', color: '#F9A825', bg: '#FFFDE7', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40050613_3-parle-agro-frooti-mango-fresh-n-juicy.jpg' },
-    { id: 29, name: 'Thums Up', variant: '300 ml', price: 35, mrp: 40, cat: 'Drinks', color: '#1B5E20', bg: '#E8F5E9', rating: 4.5, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40046786_4-thums-up.jpg' },
-    { id: 30, name: 'Appy Fizz', variant: '250 ml', price: 25, mrp: 30, cat: 'Drinks', color: '#BF360C', bg: '#FBE9E7', rating: 4.4, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40069985_4-parle-agro-appy-fizz.jpg' },
-    { id: 31, name: 'Real Guava Juice', variant: '200 ml', price: 20, mrp: 25, cat: 'Drinks', color: '#2E7D32', bg: '#E8F5E9', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40003064_7-dabur-real-juice-guava.jpg' },
+    { id: 11, name: 'Coca-Cola', variant: '300 ml', price: 35, mrp: 40, img: 'https://m.media-amazon.com/images/I/61eBPotEEAL._SL1200_.jpg' },
+    { id: 12, name: 'Real Mango Juice', variant: '200 ml', price: 25, mrp: 30, img: 'https://m.media-amazon.com/images/I/61EB2K5KsoL._SL1500_.jpg' },
+    { id: 13, name: 'Filter Coffee', variant: '150 ml', price: 45, mrp: 50, img: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80' },
+    { id: 19, name: 'Sprite Can', variant: '300 ml', price: 30, mrp: 35, img: 'https://m.media-amazon.com/images/I/31wv9D3pXRL.jpg' },
+    { id: 20, name: 'Nimbu Pani', variant: '200 ml', price: 20, mrp: 25, img: 'https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=400&q=80' },
   ],
-  instantfood: [
-    { id: 32, name: 'Cup Noodles Masala', variant: '70 g', price: 45, mrp: 50, cat: 'Instant Food', color: '#D84315', bg: '#FBE9E7', rating: 4.4, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40099765_4-nissin-cup-noodles-masala.jpg' },
-    { id: 33, name: 'MTR Ready Poha', variant: '180 g', price: 60, mrp: 70, cat: 'Instant Food', color: '#388E3C', bg: '#E8F5E9', rating: 4.6, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40223710_3-mtr-ready-to-eat-poha.jpg' },
-    { id: 34, name: 'MTR Upma Mix', variant: '170 g', price: 55, mrp: 60, cat: 'Instant Food', color: '#F57F17', bg: '#FFF8E1', rating: 4.5, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40069888_3-mtr-upma-mix.jpg' },
-    { id: 35, name: 'Knorr Tomato Soup', variant: '12 g', price: 10, mrp: 10, cat: 'Instant Food', color: '#C62828', bg: '#FFEBEE', rating: 4.2, img: 'https://www.bigbasket.com/media/uploads/p/xxl/221568_7-knorr-classic-tomato-soup.jpg' },
-    { id: 36, name: 'Top Ramen Curry', variant: '70 g', price: 12, mrp: 14, cat: 'Instant Food', color: '#E65100', bg: '#FFF3E0', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40087977_5-nissin-top-ramen-curry.jpg' },
-    { id: 37, name: 'Wai Wai Noodles', variant: '75 g', price: 15, mrp: 15, cat: 'Instant Food', color: '#AD1457', bg: '#FCE4EC', rating: 4.5, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40218870_4-wai-wai-noodles-chicken-flavour.jpg' },
-  ],
-  pharma: [
-    { id: 19, name: 'Crocin Advance', variant: '10 Tabs', price: 18, mrp: 22, cat: 'Pharma', color: '#1565C0', bg: '#E3F2FD', rating: 4.8, img: 'https://www.netmeds.com/images/product-v1/600x600/386793/crocin_advance_tablet_10s_0.jpg' },
-    { id: 20, name: 'Volini Pain Spray', variant: '15 g', price: 72, mrp: 80, cat: 'Pharma', color: '#2E7D32', bg: '#E8F5E9', rating: 4.6, img: 'https://www.netmeds.com/images/product-v1/600x600/11399/volini_spray_40g_0.jpg' },
-    { id: 21, name: 'Band-Aid Flexible', variant: '10 Strips', price: 25, mrp: 25, cat: 'Pharma', color: '#C62828', bg: '#FFEBEE', rating: 4.5, img: 'https://www.netmeds.com/images/product-v1/600x600/436302/band_aid_flexible_fabric_10s_0.jpg' },
-    { id: 22, name: 'ENO Antacid', variant: '5g × 6', price: 30, mrp: 30, cat: 'Pharma', color: '#1565C0', bg: '#E3F2FD', rating: 4.7, img: 'https://www.netmeds.com/images/product-v1/600x600/8393/eno_fruit_salt_sachets_5g_x_6s_0.jpg' },
-    { id: 38, name: 'Digene Tablet', variant: '15 Tabs', price: 25, mrp: 30, cat: 'Pharma', color: '#6A1B9A', bg: '#F3E5F5', rating: 4.4, img: 'https://www.netmeds.com/images/product-v1/600x600/15965/digene_tablet_15_0.jpg' },
-    { id: 39, name: 'Vicks VapoRub', variant: '10 ml', price: 32, mrp: 35, cat: 'Pharma', color: '#00695C', bg: '#E0F2F1', rating: 4.5, img: 'https://www.netmeds.com/images/product-v1/600x600/8234/vicks_vaporub_10_ml_0.jpg' },
-  ],
-  hygiene: [
-    { id: 24, name: 'Colgate MaxFresh', variant: '80 g', price: 65, mrp: 72, cat: 'Hygiene', color: '#C62828', bg: '#FFEBEE', rating: 4.5, img: 'https://www.colgate.com/content/dam/cp-sites/oral-care/oral-care-center/en-in/brand/colgate-max-fresh/colgate-max-fresh-toothpaste-spicy-fresh.png' },
-    { id: 40, name: 'Nivea Face Cream', variant: '20 ml', price: 35, mrp: 40, cat: 'Hygiene', color: '#1565C0', bg: '#E3F2FD', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40023786_12-nivea-soft-moisturising-creme.jpg' },
-    { id: 41, name: 'Head & Shoulders', variant: '7.5ml×4', price: 16, mrp: 16, cat: 'Hygiene', color: '#00695C', bg: '#E0F2F1', rating: 4.2, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40040065_7-head-shoulders-cool-menthol-shampoo.jpg' },
-    { id: 42, name: 'Closeup Toothpaste', variant: '50 g', price: 38, mrp: 42, cat: 'Hygiene', color: '#C62828', bg: '#FFEBEE', rating: 4.4, img: 'https://www.bigbasket.com/media/uploads/p/xxl/267056_7-close-up-deep-action-red-hot-toothpaste.jpg' },
-    { id: 43, name: 'Lifebuoy Hand Wash', variant: '50 ml', price: 20, mrp: 22, cat: 'Hygiene', color: '#C62828', bg: '#FFCDD2', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40182099_3-lifebuoy-total-10-hand-wash.jpg' },
-  ],
-  essentials: [
-    { id: 23, name: 'Tissues Travel Pack', variant: '10 Sheets', price: 10, mrp: 10, cat: 'Essentials', color: '#5D4037', bg: '#EFEBE9', rating: 4.2, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40037012_3-kleenex-travel-soft-tissues.jpg' },
-    { id: 25, name: 'N95 Face Mask', variant: 'Pack of 3', price: 45, mrp: 60, cat: 'Essentials', color: '#1565C0', bg: '#E3F2FD', rating: 4.6, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40175956_2-3m-n95-air-pollution-mask.jpg' },
-    { id: 26, name: 'Sleep Eye Mask', variant: '1 Piece', price: 35, mrp: 50, cat: 'Essentials', color: '#311B92', bg: '#EDE7F6', rating: 4.4, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40060025_4-strauss-eye-mask.jpg' },
-    { id: 45, name: 'Earplugs Pair', variant: '1 Pair', price: 15, mrp: 20, cat: 'Essentials', color: '#F57F17', bg: '#FFF8E1', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40093060_3-3m-ear-classic-earplugs.jpg' },
-    { id: 46, name: 'Type-C Charger Cable', variant: '1 m', price: 99, mrp: 149, cat: 'Essentials', color: '#37474F', bg: '#ECEFF1', rating: 4.5, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40220380_4-ambrane-rb-11s-usb-type-c-cable.jpg' },
-    { id: 47, name: 'Travel Neck Pillow', variant: '1 Piece', price: 120, mrp: 199, cat: 'Essentials', color: '#6A1B9A', bg: '#F3E5F5', rating: 4.7, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40092618_4-house-of-quirk-memory-foam-neck-pillow.jpg' },
-    { id: 48, name: 'Wet Wipes Pack', variant: '10 Wipes', price: 20, mrp: 25, cat: 'Essentials', color: '#00695C', bg: '#E0F2F1', rating: 4.3, img: 'https://www.bigbasket.com/media/uploads/p/xxl/40161714_3-himalaya-baby-wipes.jpg' },
+  travel: [
+    { id: 14, name: 'Neck Pillow', variant: '1 pc', price: 120, mrp: 150, img: 'https://m.media-amazon.com/images/I/71snOPiUrFL._AC_SL1500_.jpg' },
+    { id: 15, name: 'Eye Mask', variant: '1 pc', price: 50, mrp: 70, img: 'https://m.media-amazon.com/images/I/71Hj1iHIuQL._AC_SL1500_.jpg' },
+    { id: 16, name: 'Ear Plugs', variant: '1 pair', price: 30, mrp: 40, img: 'https://m.media-amazon.com/images/I/61XoO4nVpwL._AC_SL1500_.jpg' },
+    { id: 21, name: 'Hand Sanitizer', variant: '100 ml', price: 59, mrp: 75, img: 'https://m.media-amazon.com/images/I/51iS-FsCv2L._SL1000_.jpg' },
   ],
 }
 
-const allProducts = Object.values(PRODUCTS).flat()
+const PROMOS = [
+  { id: 1, title: 'Flat 20% OFF', sub: 'On all Snacks & Beverages', bg: 'linear-gradient(135deg,#0C831F,#22c55e)', tag: 'LIMITED' },
+  { id: 2, title: 'Free Delivery', sub: 'On orders above ₹99', bg: 'linear-gradient(135deg,#1a1a2e,#2d2d6d)', tag: 'TODAY' },
+  { id: 3, title: 'Flash Sale 🔥', sub: 'Travel essentials at ½ price', bg: 'linear-gradient(135deg,#c73900,#f47b20)', tag: 'HOT' },
+  { id: 4, title: 'New Arrivals', sub: 'Pharma & hygiene range', bg: 'linear-gradient(135deg,#4c1d95,#8b5cf6)', tag: 'NEW' },
+]
 
-// ============================================================
-// PNR LOGIN SCREEN
-// ============================================================
-function PNRScreen({ onLogin }) {
-  const [name, setName] = useState('')
-  const [pnr, setPnr] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+// ──────────────────────────────────────────────────────────────
+// HELPERS
+// ──────────────────────────────────────────────────────────────
+const isActive = t => { const n = new Date(); return n >= t.serviceStart && n <= t.serviceEnd }
+const isExpired = t => new Date() > t.serviceEnd
+const disc = p => p.mrp > p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0
 
-  const handleSubmit = () => {
-    if (!name.trim()) { setError('Please enter your name'); return }
-    if (pnr.length < 6) { setError('Enter a valid PNR (min 6 digits)'); return }
-    setError('')
-    setLoading(true)
-    setTimeout(() => {
-      const data = lookupPNR(pnr)
-      if (data) onLogin({ ...data, passengerName: name.trim() })
-      else { setError('PNR not found. Try again.'); setLoading(false) }
-    }, 1800)
-  }
+// ──────────────────────────────────────────────────────────────
+// LOGO
+// ──────────────────────────────────────────────────────────────
+const Logo = ({ h = 46 }) => (
+  <img src="/logo.png" alt="RailQuick" className="rq-logo" style={{ height: h, width: 'auto' }} />
+)
+
+// ──────────────────────────────────────────────────────────────
+// PROMO CAROUSEL
+// ──────────────────────────────────────────────────────────────
+function PromoCarousel() {
+  const ref = useRef(null)
+  const [idx, setIdx] = useState(0)
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setIdx(i => {
+        const next = (i + 1) % PROMOS.length
+        const child = ref.current?.children[next]
+        if (child) child.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
+        return next
+      })
+    }, 3400)
+    return () => clearInterval(iv)
+  }, [])
 
   return (
-    <div className="pnr-screen">
-      <div className="pnr-train-img">
-        <img src="/vande-bharat.png" alt="Vande Bharat Express" />
-        <div className="pnr-train-overlay" />
+    <div className="promo-wrap">
+      <div className="promo-scroll" ref={ref}>
+        {PROMOS.map(p => (
+          <motion.div key={p.id} className="promo-card" style={{ background: p.bg }} whileTap={{ scale: 0.96 }}>
+            <div className="promo-tag">{p.tag}</div>
+            <div><h4>{p.title}</h4><p>{p.sub}</p></div>
+          </motion.div>
+        ))}
       </div>
-      <motion.div className="pnr-card"
-        initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }}
-      >
-        <div className="pnr-logo">
-          <span className="pnr-logo-icon">🚄</span>
-          <h1 className="pnr-brand">Rail<span>Quick</span></h1>
-          <p className="pnr-tagline">Essentials delivered to your train seat</p>
-        </div>
-
-        <div className="pnr-form">
-          <div className="pnr-input-group">
-            <UserCircle size={18} className="pnr-input-icon" />
-            <input placeholder="Your Name" value={name} onChange={e => setName(e.target.value)} />
-          </div>
-          <div className="pnr-input-group">
-            <Hash size={18} className="pnr-input-icon" />
-            <input placeholder="PNR Number" value={pnr} maxLength={10}
-              onChange={e => setPnr(e.target.value.replace(/\D/g, ''))} inputMode="numeric" />
-          </div>
-          {error && <motion.div className="pnr-error" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{error}</motion.div>}
-          <motion.button className="pnr-submit" onClick={handleSubmit} disabled={loading}
-            whileTap={{ scale: 0.97 }}
-          >
-            {loading ? (
-              <div className="pnr-loading"><div className="pnr-spinner" /> Finding your train...</div>
-            ) : (
-              <>Find My Train <ArrowRight size={18} /></>
-            )}
-          </motion.button>
-        </div>
-
-        <div className="pnr-features">
-          <div className="pnr-feat"><Shield size={14} /> Verified Products</div>
-          <div className="pnr-feat"><Zap size={14} /> Seat Delivery</div>
-          <div className="pnr-feat"><Star size={14} /> 4.8★ Rated</div>
-        </div>
-      </motion.div>
+      <div className="promo-dots">
+        {PROMOS.map((_, i) => (
+          <div key={i} className={`promo-dot ${i === idx ? 'on' : ''}`}
+            style={{ width: i === idx ? 18 : 6 }} onClick={() => setIdx(i)} />
+        ))}
+      </div>
     </div>
   )
 }
 
-// ============================================================
-// PRODUCT CARD — real product images
-// ============================================================
+// ──────────────────────────────────────────────────────────────
+// TRUST STRIP
+// ──────────────────────────────────────────────────────────────
+function TrustStrip() {
+  return (
+    <div className="trust-strip">
+      {[
+        [<Zap size={12} />, '5-Min Delivery'],
+        [<Shield size={12} />, 'Quality Checked'],
+        [<Star size={12} />, '4.8★ Rated'],
+        [<Tag size={12} />, 'Best Prices'],
+        [<Gift size={12} />, 'COD Available'],
+        [<TrendingUp size={12} />, '10K+ Orders'],
+      ].map(([ic, txt], i) => (
+        <div key={i} className="trust-pill">{ic}<span>{txt}</span></div>
+      ))}
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────
+// PRODUCT CARD
+// ──────────────────────────────────────────────────────────────
 function ProductCard({ product, qty, onAdd, onRemove }) {
-  const discount = product.mrp > product.price
-    ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0
-  const [imgFailed, setImgFailed] = useState(false)
+  const [imgErr, setImgErr] = useState(false)
+  const d = disc(product)
 
   return (
-    <motion.div className="bk-product-card"
-      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-    >
-      <div className="bk-img-wrap" style={{ background: product.bg || '#f5f5f5' }}>
-        {!imgFailed && product.img ? (
-          <img
-            className="product-real-img"
-            src={product.img}
-            alt={product.name}
-            onError={() => setImgFailed(true)}
-          />
-        ) : (
-          <div className="product-tile-inner">
-            <span className="product-tile-brand" style={{ color: product.color, fontSize: 13, fontWeight: 800, textAlign: 'center' }}>{product.name}</span>
-            <span className="product-tile-variant">{product.variant}</span>
-          </div>
-        )}
-        {discount > 0 && <div className="bk-discount">{discount}% OFF</div>}
+    <motion.div className="pc" whileHover={{ y: -2 }} transition={{ duration: 0.16 }}>
+      <div className="pc-img-box">
+        {!imgErr && product.img
+          ? <img className="pc-img" src={product.img} alt={product.name} onError={() => setImgErr(true)} />
+          : <div className="pc-img-fallback">{product.name[0]}</div>}
+        {d > 0 && <div className="pc-disc-badge">{d}% OFF</div>}
       </div>
-
-      <div className="bk-product-details">
-        <div className="bk-timer-rating-row">
-          <div className="bk-timer"><Clock size={9} /> SEAT DEL.</div>
-          {product.rating && (
-            <div className="bk-rating"><Star size={9} fill="#FF9800" color="#FF9800" /> {product.rating}</div>
-          )}
-        </div>
-        <div className="bk-product-name">{product.name}</div>
-        <div className="bk-product-variant">{product.variant}</div>
-        <div className="bk-product-footer">
-          <div className="bk-price-group">
-            <span className="bk-price">₹{product.price}</span>
-            {discount > 0 && <span className="bk-mrp">₹{product.mrp}</span>}
+      <div className="pc-body">
+        <div className="pc-time"><Timer size={9} />5 MINS</div>
+        <div className="pc-name" title={product.name}>{product.name}</div>
+        <div className="pc-var">{product.variant}</div>
+        <div className="pc-foot">
+          <div>
+            <span className="pc-price">₹{product.price}</span>
+            {d > 0 && <span className="pc-mrp">₹{product.mrp}</span>}
           </div>
-          {qty === 0 ? (
-            <motion.button className="bk-add-btn" whileTap={{ scale: 0.92 }}
-              onClick={(e) => { e.stopPropagation(); onAdd(product) }}>ADD</motion.button>
-          ) : (
-            <div className="bk-qty-control">
-              <button className="bk-qty-btn" onClick={(e) => { e.stopPropagation(); onRemove(product.id) }}>−</button>
-              <span className="bk-qty-num">{qty}</span>
-              <button className="bk-qty-btn" onClick={(e) => { e.stopPropagation(); onAdd(product) }}>+</button>
-            </div>
-          )}
+          {qty === 0
+            ? <button className="pc-add" onClick={() => onAdd(product)}>ADD</button>
+            : <div className="pc-stepper">
+              <button onClick={() => onRemove(product.id)}>−</button>
+              <span>{qty}</span>
+              <button onClick={() => onAdd(product)}>+</button>
+            </div>}
         </div>
       </div>
     </motion.div>
   )
 }
 
-// ============================================================
-// TOAST
-// ============================================================
-function Toast({ message }) {
+// ──────────────────────────────────────────────────────────────
+// SECTION
+// ──────────────────────────────────────────────────────────────
+function Section({ title, icon, products, cart, onAdd, onRemove }) {
+  if (!products.length) return null
   return (
-    <motion.div className="bk-toast"
-      initial={{ y: 20, opacity: 0, x: '-50%' }} animate={{ y: 0, opacity: 1, x: '-50%' }}
-      exit={{ y: 20, opacity: 0, x: '-50%' }}
-    >{message}</motion.div>
+    <div className="sec">
+      <div className="sec-head">
+        <h3>{icon}<span style={{ marginLeft: 4 }}>{title}</span></h3>
+        <span className="sec-see">See all <ChevronRight size={14} /></span>
+      </div>
+      <div className="sec-grid">
+        {products.map(p => (
+          <ProductCard key={p.id} product={p} qty={cart[p.id]?.qty || 0} onAdd={onAdd} onRemove={onRemove} />
+        ))}
+      </div>
+    </div>
   )
 }
 
-// ============================================================
-// CART DRAWER (inline)
-// ============================================================
-function CartDrawer({ cart, pnrData, onClose, onCheckout, onAdd, onRemove }) {
+// ──────────────────────────────────────────────────────────────
+// DESKTOP SIDEBAR (categories)
+// ──────────────────────────────────────────────────────────────
+function DesktopSidebar({ active, onSelect }) {
+  return (
+    <aside className="d-sidebar">
+      {CATEGORIES.map(c => (
+        <div key={c.name}
+          className={`sidebar-cat ${active === c.name ? 'active' : ''}`}
+          onClick={() => onSelect(c.name)}>
+          <img className="sidebar-cat-img" src={c.icon} alt={c.name} />
+          <span className="sidebar-cat-name">{c.name}</span>
+        </div>
+      ))}
+    </aside>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────
+// BOTTOM NAV (mobile)
+// ──────────────────────────────────────────────────────────────
+function BottomNav({ tab, onTab, cartCount }) {
+  return (
+    <nav className="btm-nav">
+      {[
+        { key: 'home', icon: <Home size={22} />, label: 'Home' },
+        { key: 'cats', icon: <Grid3X3 size={22} />, label: 'Categories' },
+        { key: 'cart', icon: null, label: 'Cart', isCart: true },
+        { key: 'offers', icon: <Tag size={22} />, label: 'Offers' },
+      ].map(it => (
+        <button key={it.key} className={`btm-btn ${tab === it.key ? 'active' : ''}`} onClick={() => onTab(it.key)}>
+          {it.isCart
+            ? <div className="btm-btn-icon btm-cart-wrap">
+              <ShoppingBag size={22} />
+              {cartCount > 0 && <span className="btm-badge">{cartCount}</span>}
+            </div>
+            : <div className="btm-btn-icon">{it.icon}</div>}
+          <span>{it.label}</span>
+        </button>
+      ))}
+    </nav>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────
+// DESKTOP TOP NAV
+// ──────────────────────────────────────────────────────────────
+function DesktopNav({ train, search, onSearch, cartCount, onCart, onBack }) {
+  return (
+    <nav className="d-nav">
+      <div className="d-nav-inner">
+        <div className="d-nav-logo"><Logo h={50} /></div>
+
+        <div className="d-nav-train" onClick={onBack}>
+          <ArrowLeft size={14} />
+          <div>
+            <div className="d-nav-train-no">Train {train.trainNo}</div>
+            <div className="d-nav-train-route">{train.from} → {train.to}</div>
+          </div>
+        </div>
+
+        <div className="d-nav-search">
+          <Search size={18} />
+          <input
+            placeholder="Search for snacks, drinks, medicines…"
+            value={search}
+            onChange={e => onSearch(e.target.value)}
+          />
+        </div>
+
+        <button className="d-nav-cart" onClick={onCart}>
+          <ShoppingBag size={20} />
+          My Cart
+          {cartCount > 0 && <span className="d-nav-cart-badge">{cartCount}</span>}
+        </button>
+      </div>
+    </nav>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────
+// CART DRAWER
+// ──────────────────────────────────────────────────────────────
+function CartDrawer({ cart, onClose, onCheckout, onAdd, onRemove }) {
   const items = Object.values(cart)
-  const totalItems = items.reduce((s, i) => s + i.qty, 0)
   const itemTotal = items.reduce((s, i) => s + i.price * i.qty, 0)
-  const mrpTotal = items.reduce((s, i) => s + i.mrp * i.qty, 0)
-  const savings = mrpTotal - itemTotal
   const handling = 5
   const grand = itemTotal + handling
 
   return (
-    <motion.div className="bk-drawer-overlay"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
-    >
-      <div style={{ position: 'absolute', inset: 0 }} onClick={onClose} />
-      <motion.div className="bk-drawer-sheet"
+    <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <div className="overlay-tap" onClick={onClose} />
+      <motion.div className="cart-sheet"
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-      >
-        <div className="bk-drawer-handle" />
-        <div className="bk-drawer-head">
-          <div className="bk-drawer-title">Your Cart ({totalItems})</div>
-          <button className="bk-drawer-close" onClick={onClose}><X size={16} /></button>
-        </div>
-
-        <div className="bk-drawer-body">
-          <div className="bk-delivery-card">
-            <div className="bk-delivery-icon"><Zap size={18} /></div>
-            <div className="bk-delivery-info">
-              <h4>Delivery to your seat</h4>
-              <p>Coach {pnrData?.coach} · Seat {pnrData?.seat} · {pnrData?.train}</p>
-            </div>
+        transition={{ type: 'spring', damping: 32, stiffness: 340 }}>
+        <div className="cart-handle" />
+        <div className="cart-hd">
+          <div>
+            <span className="cart-hd-title">My Cart</span>
+            <span className="cart-hd-count">• {items.length} item{items.length !== 1 ? 's' : ''}</span>
           </div>
-
-          {items.map(item => (
-            <div className="bk-cart-item" key={item.id}>
-              <div className="bk-cart-item-img" style={{ background: item.bg || '#f5f5f5' }}>
-                {item.img
-                  ? <img src={item.img} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 8 }}
-                    onError={e => { e.target.style.display = 'none' }} />
-                  : <span style={{ fontSize: 22 }}>{item.name[0]}</span>
-                }
+          <button className="cart-x" onClick={onClose}><X size={16} /></button>
+        </div>
+        <div className="cart-body">
+          <div className="cart-eta">
+            <Zap size={14} />
+            <span>Delivered to your seat in <strong>5 minutes</strong></span>
+          </div>
+          {items.map(it => (
+            <div key={it.id} className="cart-item">
+              <div className="cart-item-img">
+                <img src={it.img} alt={it.name} onError={e => e.target.style.display = 'none'} />
               </div>
-              <div className="bk-cart-item-info">
-                <div className="bk-cart-item-name">{item.name}</div>
-                <div className="bk-cart-item-variant">{item.variant}</div>
-                <div className="bk-cart-item-row">
-                  <span className="bk-cart-item-price">₹{item.price * item.qty}</span>
-                  <div className="bk-cart-item-qty">
-                    <button onClick={() => onRemove(item.id)}>−</button>
-                    <span>{item.qty}</span>
-                    <button onClick={() => onAdd(item)}>+</button>
+              <div className="cart-item-info">
+                <div className="cart-item-name">{it.name}</div>
+                <div className="cart-item-var">{it.variant}</div>
+                <div className="cart-item-row">
+                  <span className="cart-item-price">₹{it.price * it.qty}</span>
+                  <div className="cart-item-stepper">
+                    <button onClick={() => onRemove(it.id)}>−</button>
+                    <span>{it.qty}</span>
+                    <button onClick={() => onAdd(it)}>+</button>
                   </div>
                 </div>
               </div>
             </div>
           ))}
-
-          <div className="bk-bill">
-            <div className="bk-bill-title">Bill Details</div>
-            <div className="bk-bill-row"><span>MRP Total</span><span>₹{mrpTotal}</span></div>
-            {savings > 0 && <div className="bk-bill-row green"><span>Product Discount</span><span>-₹{savings}</span></div>}
-            <div className="bk-bill-row"><span>Handling Charge</span><span>₹{handling}</span></div>
-            <div className="bk-bill-row green"><span>Delivery Charge</span><span>FREE</span></div>
-            <hr className="bk-bill-divider" />
-            <div className="bk-bill-total"><span>Bill Total</span><span>₹{grand}</span></div>
-            {savings > 0 && <div className="bk-savings-strip">🎉 You saved ₹{savings} on this order!</div>}
+          <div className="cart-bill">
+            <div className="cart-bill-title">Bill Summary</div>
+            <div className="cart-bill-row"><span>Item Total</span><span>₹{itemTotal}</span></div>
+            <div className="cart-bill-row"><span>Handling Fee</span><span>₹{handling}</span></div>
+            <div className="cart-bill-row total"><span>Grand Total</span><span>₹{grand}</span></div>
           </div>
         </div>
-
-        <div className="bk-drawer-footer">
-          <button className="bk-checkout-btn" onClick={onCheckout}>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: 10, opacity: 0.8, fontWeight: 600 }}>TOTAL</div>
-              <div style={{ fontSize: 16 }}>₹{grand}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              Place Order <ChevronRight size={18} />
-            </div>
-          </button>
+        <div className="cart-foot">
+          <button className="cart-cta" onClick={onCheckout}>Place Order · ₹{grand}</button>
         </div>
       </motion.div>
     </motion.div>
   )
 }
 
-// ============================================================
-// PAYMENT MODAL
-// ============================================================
-function PaymentModal({ grand, onPay, onClose }) {
-  const [selected, setSelected] = useState('upi')
-  const [paying, setPaying] = useState(false)
+// ──────────────────────────────────────────────────────────────
+// ORDER FORM  (name, seat, contact — no PNR)
+// ──────────────────────────────────────────────────────────────
+function OrderForm({ cart, train, onClose, onConfirm }) {
+  const [fd, setFd] = useState({ name: '', seat: '', contact: '' })
+  const [placing, setPlacing] = useState(false)
+  const [err, setErr] = useState('')
+  const grand = Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0) + 5
 
-  const methods = [
-    { id: 'upi', label: 'UPI / GPay / PhonePe', icon: <Smartphone size={20} />, sub: 'Instant & secure' },
-    { id: 'card', label: 'Credit / Debit Card', icon: <CreditCard size={20} />, sub: 'Visa · Mastercard · RuPay' },
-    { id: 'cash', label: 'Pay at Delivery', icon: <IndianRupee size={20} />, sub: 'Pay when delivered to seat' },
-  ]
+  const submit = async () => {
+    if (!fd.name.trim()) { setErr('Please enter your name'); return }
+    if (!fd.seat.trim()) { setErr('Please enter your seat / berth number'); return }
+    if (!fd.contact || fd.contact.length < 10) { setErr('Enter a valid 10-digit mobile number'); return }
+    setErr('')
+    setPlacing(true)
 
-  const handlePay = () => {
-    setPaying(true)
-    setTimeout(() => { onPay() }, 1400)
-  }
-
-  return (
-    <motion.div className="pay-overlay"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-    >
-      <div style={{ position: 'absolute', inset: 0 }} onClick={onClose} />
-      <motion.div className="pay-sheet"
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-      >
-        <div className="bk-drawer-handle" />
-        <div className="pay-header">
-          <div className="pay-title">Choose Payment</div>
-          <button className="bk-drawer-close" onClick={onClose}><X size={16} /></button>
-        </div>
-
-        <div className="pay-amount-chip">
-          <IndianRupee size={16} /> Total: <strong>₹{grand}</strong>
-        </div>
-
-        <div className="pay-methods">
-          {methods.map(m => (
-            <div key={m.id} className={`pay-method ${selected === m.id ? 'active' : ''}`}
-              onClick={() => setSelected(m.id)}
-            >
-              <div className="pay-method-icon">{m.icon}</div>
-              <div className="pay-method-info">
-                <div className="pay-method-label">{m.label}</div>
-                <div className="pay-method-sub">{m.sub}</div>
-              </div>
-              <div className={`pay-radio ${selected === m.id ? 'on' : ''}`} />
-            </div>
-          ))}
-        </div>
-
-        <div className="pay-footer">
-          <motion.button className="pay-now-btn" onClick={handlePay} disabled={paying}
-            whileTap={{ scale: 0.97 }}
-          >
-            {paying
-              ? <><div className="pnr-spinner" style={{ width: 18, height: 18, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} /> Processing...</>
-              : <>{selected === 'cash' ? 'Confirm Order' : `Pay ₹${grand}`} <ChevronRight size={18} /></>
-            }
-          </motion.button>
-          <p className="pay-secure-note">🔒 100% Secure Payment</p>
-        </div>
-      </motion.div>
-    </motion.div>
-  )
-}
-
-// ============================================================
-// ORDER TRACKING
-// ============================================================
-function OrderTracking({ onComplete, pnrData, orderInfo }) {
-  const [step, setStep] = useState(0)
-  useEffect(() => {
-    const t1 = setTimeout(() => setStep(1), 2500)
-    const t2 = setTimeout(() => setStep(2), 5500)
-    const t3 = setTimeout(() => setStep(3), 9000)
-    const t4 = setTimeout(() => onComplete(), 12000)
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
-  }, [onComplete])
-
-  const steps = [
-    { title: 'Order Confirmed! ✅', sub: `Order #${orderInfo?.orderId} placed successfully`, icon: <CheckCircle2 size={42} />, bg: '#E8F5E9' },
-    { title: 'Being Prepared 📦', sub: `${orderInfo?.totalItems} item${orderInfo?.totalItems > 1 ? 's' : ''} being packed by our vendor`, icon: <Package size={42} />, bg: '#FFF8E1' },
-    { title: 'On the Way! 🚶', sub: `Heading to Coach ${pnrData?.coach}, Seat ${pnrData?.seat}`, icon: <Truck size={42} />, bg: '#E3F2FD' },
-    { title: 'Delivered! 🎉', sub: 'Please keep your PNR ticket ready for verification', icon: <Zap size={42} />, bg: '#E8F5E9' },
-  ]
-
-  return (
-    <motion.div className="bk-anim-screen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <AnimatePresence mode="wait">
-        <motion.div key={step} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}
-        >
-          <div className="bk-anim-icon" style={{ background: steps[step].bg, color: '#0C831F' }}>{steps[step].icon}</div>
-          <h2 className="bk-anim-title">{steps[step].title}</h2>
-          <p className="bk-anim-sub">{steps[step].sub}</p>
-          {step === 0 && orderInfo && (
-            <motion.div className="order-id-chip" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-              <Receipt size={14} /> Order #{orderInfo.orderId}
-            </motion.div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-      <div className="bk-progress">{[0, 1, 2, 3].map(i => <div key={i} className={`bk-progress-seg ${i <= step ? 'on' : ''}`} />)}</div>
-    </motion.div>
-  )
-}
-
-// ============================================================
-// PRODUCT SECTION
-// ============================================================
-function ProductSection({ title, products, cart, onAdd, onRemove, scrollable = false }) {
-  return (
-    <div className="bk-section">
-      <div className="bk-section-header">
-        <h3 className="bk-section-title">{title}</h3>
-        <span className="bk-see-all">see all →</span>
-      </div>
-      {scrollable ? (
-        <div className="bk-product-scroll">
-          {products.map(p => <ProductCard key={p.id} product={p} qty={cart[p.id]?.qty || 0} onAdd={onAdd} onRemove={onRemove} />)}
-        </div>
-      ) : (
-        <div className="bk-product-grid">
-          {products.map(p => <ProductCard key={p.id} product={p} qty={cart[p.id]?.qty || 0} onAdd={onAdd} onRemove={onRemove} />)}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ============================================================
-// MAIN APP
-// ============================================================
-function App() {
-  const [pnrData, setPnrData] = useState(null)
-  const [cart, setCart] = useState({})
-  const [cartOpen, setCartOpen] = useState(false)
-  const [paymentOpen, setPaymentOpen] = useState(false)
-  const [ordering, setOrdering] = useState(false)
-  const [orderDone, setOrderDone] = useState(false)
-  const [orderInfo, setOrderInfo] = useState(null)
-  const [activeCat, setActiveCat] = useState(null)
-  const [search, setSearch] = useState('')
-  const [toast, setToast] = useState(null)
-  const toastTimer = useRef(null)
-
-  const showToast = (msg) => {
-    setToast(msg)
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToast(null), 1500)
-  }
-
-  const addToCart = useCallback((product) => {
-    setCart(prev => {
-      const e = prev[product.id]
-      return { ...prev, [product.id]: { ...product, qty: e ? e.qty + 1 : 1 } }
-    })
-    showToast(`Added ${product.name}`)
-  }, [])
-
-  const removeFromCart = useCallback((id) => {
-    setCart(prev => {
-      const e = prev[id]
-      if (!e) return prev
-      if (e.qty <= 1) { const { [id]: _, ...rest } = prev; return rest }
-      return { ...prev, [id]: { ...e, qty: e.qty - 1 } }
-    })
-  }, [])
-
-  const totalItems = Object.values(cart).reduce((s, i) => s + i.qty, 0)
-  const totalPrice = Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0)
-
-  const searching = search.trim() !== '' || activeCat !== null
-  const filteredProducts = allProducts.filter(p => {
-    const mc = !activeCat || p.cat === activeCat
-    const ms = !search || p.name.toLowerCase().includes(search.toLowerCase())
-    return mc && ms
-  })
-
-  // "Place Order" in cart drawer → open payment modal
-  const handleOpenPayment = () => {
-    setCartOpen(false)
-    setTimeout(() => setPaymentOpen(true), 300)
-  }
-
-  // After payment confirmed → build orderInfo → start animation
-  const handleConfirmPayment = () => {
-    const items = Object.values(cart)
-    const totalItemsCount = items.reduce((s, i) => s + i.qty, 0)
-    const itemTotal = items.reduce((s, i) => s + i.price * i.qty, 0)
-    const mrpTotal = items.reduce((s, i) => s + i.mrp * i.qty, 0)
-    const savings = mrpTotal - itemTotal
-    const handling = 5
-    const orderId = 'RQ-' + String(Math.floor(10000 + Math.random() * 90000))
-    const placedAt = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-    setOrderInfo({
+    const orderId = 'RQ' + Math.floor(100000 + Math.random() * 900000)
+    const orderData = {
       orderId,
-      items: items.map(i => ({ name: i.name, variant: i.variant, qty: i.qty, price: i.price, img: i.img, bg: i.bg })),
-      totalItems: totalItemsCount,
-      itemTotal,
-      mrpTotal,
-      savings,
-      grand: itemTotal + handling,
-      handling,
-      placedAt,
-    })
-    setPaymentOpen(false)
-    setTimeout(() => setOrdering(true), 200)
+      name: fd.name,
+      seat: fd.seat,
+      contact: fd.contact,
+      items: Object.values(cart),
+      grand,
+      trainNo: train.trainNo,
+    }
+
+    // Save to Google Sheet (non-blocking)
+    saveOrderToSheet(orderData)
+
+    setTimeout(() => onConfirm(orderData), 1500)
   }
 
-  const handleComplete = useCallback(() => { setOrdering(false); setOrderDone(true) }, [])
-
-  // ===== PNR LOGIN =====
-  if (!pnrData) return <PNRScreen onLogin={setPnrData} />
-
-  // ===== SUCCESS SCREEN =====
-  if (orderDone && orderInfo) {
-    return (
-      <div className="app-shell">
-        <motion.div className="bk-success-screen receipt-screen"
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        >
-          <motion.div className="bk-success-badge"
-            initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', delay: 0.15 }}
-          ><CheckCircle2 size={44} /></motion.div>
-
-          <motion.h1 className="bk-success-title"
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          >Order Delivered! 🎉</motion.h1>
-
-          <motion.div className="receipt-card" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <div className="receipt-header">
-              <div className="receipt-order-id">Order #{orderInfo.orderId}</div>
-              <div className="receipt-time">Placed at {orderInfo.placedAt}</div>
-            </div>
-
-            <div className="receipt-delivery">
-              <MapPin size={14} />
-              <div>
-                <div className="receipt-delivery-title">Delivered to seat</div>
-                <div className="receipt-delivery-info">Coach {pnrData.coach}, Seat {pnrData.seat} · {pnrData.train}</div>
-              </div>
-            </div>
-
-            <div className="receipt-items">
-              <div className="receipt-section-title">Items Ordered</div>
-              {orderInfo.items.map((item, i) => (
-                <div className="receipt-item" key={i}>
-                  <div className="receipt-item-img" style={{ background: item.bg || '#f5f5f5' }}>
-                    {item.img
-                      ? <img src={item.img} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                        onError={e => { e.target.style.display = 'none' }} />
-                      : <span style={{ fontSize: 14, fontWeight: 800 }}>{item.name[0]}</span>
-                    }
-                  </div>
-                  <div className="receipt-item-info">
-                    <span className="receipt-item-name">{item.name}</span>
-                    <span className="receipt-item-variant">{item.variant} × {item.qty}</span>
-                  </div>
-                  <span className="receipt-item-price">₹{item.price * item.qty}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="receipt-bill">
-              <div className="receipt-bill-row"><span>Item Total</span><span>₹{orderInfo.itemTotal}</span></div>
-              {orderInfo.savings > 0 && <div className="receipt-bill-row green"><span>Discount</span><span>-₹{orderInfo.savings}</span></div>}
-              <div className="receipt-bill-row"><span>Handling</span><span>₹{orderInfo.handling}</span></div>
-              <div className="receipt-bill-row"><span>Delivery</span><span className="green">FREE</span></div>
-              <div className="receipt-bill-total"><span>Total Paid</span><span>₹{orderInfo.grand}</span></div>
-              {orderInfo.savings > 0 && <div className="receipt-savings">🎉 You saved ₹{orderInfo.savings}!</div>}
-            </div>
-          </motion.div>
-
-          <motion.button className="bk-primary-btn"
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-            onClick={() => { setCart({}); setOrderDone(false); setOrderInfo(null) }}
-          >Order More</motion.button>
-        </motion.div>
-      </div>
-    )
-  }
-
-  // ===== MAIN APP =====
   return (
-    <div className="app-shell">
-      <AnimatePresence>{ordering && <OrderTracking onComplete={handleComplete} pnrData={pnrData} orderInfo={orderInfo} />}</AnimatePresence>
-      <AnimatePresence>{cartOpen && <CartDrawer cart={cart} pnrData={pnrData} onClose={() => setCartOpen(false)} onCheckout={handleOpenPayment} onAdd={addToCart} onRemove={removeFromCart} />}</AnimatePresence>
-      <AnimatePresence>{paymentOpen && <PaymentModal grand={Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0) + 5} onPay={handleConfirmPayment} onClose={() => setPaymentOpen(false)} />}</AnimatePresence>
-      <AnimatePresence>{toast && <Toast message={toast} />}</AnimatePresence>
-
-      {/* HEADER */}
-      <header className="bk-header">
-        <div className="bk-header-top">
-          <div className="bk-header-left">
-            <div className="bk-delivery-label">🚄 {pnrData.train}</div>
-            <div className="bk-address-row">
-              <MapPin size={12} />
-              <span className="bk-address-text">Coach {pnrData.coach}, Seat {pnrData.seat} · {pnrData.route}</span>
-              <ChevronDown size={13} />
-            </div>
-          </div>
-          <div className="bk-passenger-badge">{pnrData.passengerName?.[0]?.toUpperCase()}</div>
+    <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ zIndex: 500 }}>
+      <div className="overlay-tap" onClick={onClose} />
+      <motion.div className="form-sheet"
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 32, stiffness: 340 }}>
+        <div className="form-logo"><Logo h={42} /></div>
+        <div className="form-hd">
+          <span className="form-hd-title">Delivery Details</span>
+          <button className="cart-x" onClick={onClose}><X size={16} /></button>
         </div>
-        <div className="bk-search-wrap">
-          <div className="bk-search-bar">
-            <Search size={18} color="#9E9E9E" />
-            <input type="text" placeholder='Search "chips, water, medicine"'
-              value={search} onChange={(e) => setSearch(e.target.value)} />
-            {search && <button onClick={() => setSearch('')} style={{ display: 'flex' }}><X size={16} color="#9E9E9E" /></button>}
-          </div>
-        </div>
-      </header>
-
-      {/* MAIN CONTENT */}
-      <main style={{ paddingBottom: totalItems > 0 ? 90 : 20 }}>
-        <div className="bk-categories">
-          <div className="bk-cat-grid">
-            {CATEGORIES.map(cat => (
-              <div className="bk-cat-item" key={cat.name}
-                onClick={() => { setActiveCat(activeCat === cat.name ? null : cat.name); setSearch('') }}
-              >
-                <div className={`bk-cat-icon ${activeCat === cat.name ? 'active' : ''}`} style={{ background: cat.bg }}>
-                  {cat.icon}
-                </div>
-                <span className={`bk-cat-name ${activeCat === cat.name ? 'active' : ''}`}>{cat.name}</span>
+        <div className="form-body">
+          <div className="form-fields">
+            {[
+              { label: 'Full Name', key: 'name', ph: 'Your full name', type: 'text' },
+              { label: 'Seat / Berth', key: 'seat', ph: 'e.g. B2-42 or S4-15', type: 'text' },
+              { label: 'Mobile Number', key: 'contact', ph: '10-digit number', type: 'tel', max: 10 },
+            ].map(f => (
+              <div key={f.key} className="form-field">
+                <label>{f.label}</label>
+                <input
+                  type={f.type} placeholder={f.ph} maxLength={f.max || 60}
+                  value={fd[f.key]}
+                  onChange={e => setFd({
+                    ...fd,
+                    [f.key]: f.key === 'seat' ? e.target.value.toUpperCase()
+                      : f.key === 'contact' ? e.target.value.replace(/\D/g, '')
+                        : e.target.value
+                  })}
+                />
               </div>
             ))}
           </div>
+          {err && <div className="form-err"><AlertCircle size={14} />{err}</div>}
+        </div>
+        <div className="form-foot">
+          <button className="form-cta" onClick={submit} disabled={placing}>
+            {placing ? '⏳ Placing your order…' : `Confirm · Pay ₹${grand} on Delivery`}
+          </button>
+          <div className="form-secure"><Shield size={12} />Secured by RailQuick</div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────
+// ORDER TRACKING
+// ──────────────────────────────────────────────────────────────
+function OrderTracking({ orderInfo, onComplete }) {
+  const [step, setStep] = useState(0)
+  useEffect(() => {
+    const ts = [1600, 3200, 4800].map((ms, i) => setTimeout(() => setStep(i + 1), ms))
+    const fin = setTimeout(onComplete, 6800)
+    return () => [...ts, fin].forEach(clearTimeout)
+  }, [onComplete])
+
+  const STEPS = [
+    { title: 'Order Confirmed!', sub: 'Your order has been placed', icon: <CheckCircle2 size={60} /> },
+    { title: 'Vendor Picking', sub: 'Getting your items ready', icon: <Package size={60} /> },
+    { title: 'On the Way!', sub: 'Heading to your coach', icon: <Truck size={60} /> },
+    { title: 'Almost There!', sub: `Arriving at Seat ${orderInfo.seat}`, icon: <Zap size={60} /> },
+  ]
+  const s = STEPS[step]
+
+  return (
+    <motion.div className="tracking-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <div className="tracking-content">
+        <div className="tracking-logo"><Logo h={48} /></div>
+        <motion.div className="tracking-icon" key={step}
+          initial={{ scale: 0.3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 220 }}>
+          {s.icon}
+        </motion.div>
+        <div>
+          <div className="tracking-title">{s.title}</div>
+          <div className="tracking-sub">{s.sub}</div>
+        </div>
+        <div className="tracking-bar">
+          {[0, 1, 2, 3].map(i => <div key={i} className={`tracking-seg ${i <= step ? 'on' : ''}`} />)}
+        </div>
+        <div className="tracking-meta">
+          <span>Order # {orderInfo.orderId}</span>
+          <span>·</span>
+          <span>Seat {orderInfo.seat}</span>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────
+// SUCCESS SCREEN
+// ──────────────────────────────────────────────────────────────
+function SuccessScreen({ orderInfo, onGoHome }) {
+  const wpMsg = encodeURIComponent(
+    `Hi! I placed Order #${orderInfo.orderId} for Seat ${orderInfo.seat}. Need help!`
+  )
+  const wpUrl = `https://wa.me/918882779769?text=${wpMsg}`
+
+  return (
+    <motion.div className="success-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <div className="success-logo"><Logo h={52} /></div>
+
+      <motion.div className="success-check"
+        initial={{ scale: 0 }} animate={{ scale: 1 }}
+        transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}>
+        <CheckCircle2 size={60} />
+      </motion.div>
+
+      <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+        Order Placed! 🎉
+      </motion.h1>
+
+      <motion.p className="success-sub"
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+        Your vendor is on the way to <strong>Seat {orderInfo.seat}</strong>.
+      </motion.p>
+
+      <motion.div className="success-timer"
+        initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.45 }}>
+        <Zap size={18} />
+        <span>We will deliver in your seat in <strong>5 minutes!</strong></span>
+      </motion.div>
+
+      <motion.div className="success-card"
+        initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+        <div className="success-card-hdr">
+          <Package size={20} color="white" />
+          <div className="success-card-hdr-txt">
+            <h4>Order #{orderInfo.orderId}</h4>
+            <p>Cash on Delivery · ₹{orderInfo.grand}</p>
+          </div>
+        </div>
+        {[
+          ['Customer', orderInfo.name],
+          ['Seat', orderInfo.seat],
+          ['Mobile', orderInfo.contact],
+          ['Amount', `₹${orderInfo.grand}`],
+        ].map(([k, v]) => (
+          <div key={k} className="receipt-row">
+            <span>{k}</span>
+            <span className={`receipt-val ${k === 'Amount' ? 'text-green' : ''}`}>{v}</span>
+          </div>
+        ))}
+      </motion.div>
+
+      <motion.div className="success-actions"
+        initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}>
+        <a
+          href={wpUrl} target="_blank" rel="noopener noreferrer"
+          className="btn-whatsapp">
+          <MessageCircle size={20} />
+          Contact Customer Support
+        </a>
+        <button className="btn-home" onClick={onGoHome}>
+          <Home size={18} />
+          Go to Home
+        </button>
+      </motion.div>
+
+      <div className="success-powered">Powered by <strong>RailQuick</strong></div>
+    </motion.div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────
+// TRAIN SELECTION SCREEN (landing)
+// ──────────────────────────────────────────────────────────────
+function TrainScreen({ onSelect }) {
+  return (
+    <div className="ts-screen">
+      <div className="ts-wrap">
+        <nav className="ts-nav">
+          <Logo h={54} />
+          <div className="ts-nav-right">
+            <div className="ts-nav-links">
+              <span>Our Service</span>
+              <span>Support</span>
+            </div>
+          </div>
+        </nav>
+
+        <div className="ts-hero">
+          <div className="ts-hero-left">
+            <div className="ts-eyebrow"><Zap size={13} />India's fastest on-train delivery</div>
+            <h1 className="ts-title">
+              Delivered to<br />your seat in<br /><span className="text-green">5 minutes</span>
+            </h1>
+            <p className="ts-sub">
+              On-board service delivering essentials, snacks &amp; medicines right to your berth. Cash on delivery accepted.
+            </p>
+            <div className="ts-pills">
+              <div className="ts-pill"><Timer size={14} />Ultra Fast</div>
+              <div className="ts-pill"><Shield size={14} />Quality Assured</div>
+              <div className="ts-pill"><Star size={14} />4.8★ Rated</div>
+              <div className="ts-pill"><Flame size={14} />10,000+ Orders</div>
+            </div>
+          </div>
+          <div className="ts-hero-right">
+            <img src="/vande-bharat.png" alt="Train delivery" className="ts-hero-img" />
+            <div className="ts-hero-float">
+              <div className="ts-hero-float-icon"><Zap size={22} /></div>
+              <div className="ts-hero-float-txt">
+                <strong>Live Tracking</strong>
+                <span>Know exactly when it arrives</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {searching ? (
-          <div className="bk-section">
-            <div className="bk-section-header">
-              <h3 className="bk-section-title">{activeCat || 'Search Results'}</h3>
-              <span className="bk-see-all">{filteredProducts.length} items</span>
+        <div className="ts-features">
+          {[
+            { icon: <Timer size={22} />, title: '5-Min Delivery', sub: 'Vendor walks to your berth directly' },
+            { icon: <Shield size={22} />, title: 'Quality Assured', sub: 'All products checked before delivery' },
+            { icon: <Bolt size={22} />, title: 'Live Tracking', sub: 'Real-time status from dispatch to seat' },
+          ].map(f => (
+            <div key={f.title} className="ts-feat">
+              <div className="ts-feat-icon">{f.icon}</div>
+              <div className="ts-feat-title">{f.title}</div>
+              <div className="ts-feat-sub">{f.sub}</div>
             </div>
-            {filteredProducts.length > 0 ? (
-              <div className="bk-product-grid">
-                {filteredProducts.map(p => <ProductCard key={p.id} product={p} qty={cart[p.id]?.qty || 0} onAdd={addToCart} onRemove={removeFromCart} />)}
-              </div>
-            ) : (
-              <div className="bk-empty">
-                <div className="bk-empty-icon">🔍</div>
-                <div className="bk-empty-text">No products found</div>
-                <div className="bk-empty-sub">Try a different search or category</div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <>
-            {/* Welcome Banner */}
-            <div className="bk-welcome-banner">
-              <div className="bk-welcome-text">
-                <div className="bk-welcome-hi">Hi {pnrData.passengerName} 👋</div>
-                <div className="bk-welcome-sub">What would you like to order on your {pnrData.train} journey?</div>
-              </div>
-            </div>
+          ))}
+        </div>
 
-            {/* Offer Banners */}
-            <div className="bk-offers-scroll">
-              <div className="bk-offer-card" style={{ background: 'linear-gradient(135deg, #0C831F 0%, #1aaa3a 100%)' }}>
-                <div>
-                  <div className="bk-offer-title">Everything at your seat!</div>
-                  <div className="bk-offer-sub">Delivered on Vande Bharat</div>
-                </div>
-                <span className="bk-offer-emoji">🚄</span>
-              </div>
-              <div className="bk-offer-card" style={{ background: 'linear-gradient(135deg, #2479BD 0%, #4ba3e8 100%)' }}>
-                <div>
-                  <div className="bk-offer-title">Flat ₹20 OFF first order</div>
-                  <div className="bk-offer-sub">Use code: RAILFIRST</div>
-                </div>
-                <span className="bk-offer-emoji">🎁</span>
-              </div>
-              <div className="bk-offer-card" style={{ background: 'linear-gradient(135deg, #e65100 0%, #ff8a50 100%)' }}>
-                <div>
-                  <div className="bk-offer-title">Snacks from just ₹10</div>
-                  <div className="bk-offer-sub">Bestseller collection</div>
-                </div>
-                <span className="bk-offer-emoji">🍿</span>
-              </div>
-              <div className="bk-offer-card" style={{ background: 'linear-gradient(135deg, #6a1b9a 0%, #ab47bc 100%)' }}>
-                <div>
-                  <div className="bk-offer-title">Instant Food — Hot &amp; Ready</div>
-                  <div className="bk-offer-sub">Maggi, MTR Poha &amp; more</div>
-                </div>
-                <span className="bk-offer-emoji">🍜</span>
-              </div>
-            </div>
+        <div className="ts-select-hd">
+          <h2>Select your train</h2>
+          <p>Check service availability for your journey</p>
+        </div>
 
-            {/* Trust Bar */}
-            <div className="bk-info-bar">
-              <div className="bk-info-item"><div className="bk-info-val">🛡️ Verified</div><div className="bk-info-label">Products</div></div>
-              <div className="bk-info-item"><div className="bk-info-val">🪑 Seat</div><div className="bk-info-label">Delivery</div></div>
-              <div className="bk-info-item"><div className="bk-info-val">🥇 50+</div><div className="bk-info-label">Items</div></div>
-            </div>
+        <div className="ts-train-grid">
+          {TRAINS.map(train => {
+            const active = isActive(train), expired = isExpired(train)
+            return (
+              <motion.div key={train.id}
+                className={`ts-card ${active ? 'active' : ''} ${expired ? 'expired' : ''}`}
+                whileHover={!expired ? { y: -4 } : {}}
+                onClick={() => !expired && onSelect(train)}>
+                <div className="ts-card-top">
+                  <div>
+                    <div className="ts-card-no">Train {train.trainNo}</div>
+                    <div className="ts-card-name">{train.name}</div>
+                  </div>
+                  {active
+                    ? <span className="badge badge-live"><Zap size={10} />LIVE</span>
+                    : expired
+                      ? <span className="badge badge-expired"><Lock size={10} />CLOSED</span>
+                      : <span className="badge badge-upcoming" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Timer size={10} />UPCOMING
+                      </span>}
+                </div>
+                <div className="ts-card-route">
+                  <div className="ts-city">
+                    <div className="ts-city-name">{train.from}</div>
+                    <div className="ts-city-time">{train.departure}</div>
+                  </div>
+                  <div className="ts-track">
+                    <div className="ts-dot" /><div className="ts-line" />
+                    <ArrowRight size={13} />
+                    <div className="ts-line" /><div className="ts-dot" />
+                  </div>
+                  <div className="ts-city text-right">
+                    <div className="ts-city-name">{train.to}</div>
+                    <div className="ts-city-time">{train.arrival}</div>
+                  </div>
+                </div>
+                <div className="ts-card-foot">
+                  <div className="ts-card-date"><Calendar size={12} /><span>{train.date}</span></div>
+                  <button className="ts-btn">
+                    {active ? 'Order Now' : expired ? 'Closed' : 'Browse'} <ArrowRight size={14} />
+                  </button>
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
 
-            <ProductSection title="🔥 Bestsellers" products={PRODUCTS.best} cart={cart} onAdd={addToCart} onRemove={removeFromCart} />
-            <ProductSection title="🍿 Snacks & Munchies" products={PRODUCTS.snacks} cart={cart} onAdd={addToCart} onRemove={removeFromCart} scrollable />
-            <ProductSection title="🍜 Instant Food" products={PRODUCTS.instantfood} cart={cart} onAdd={addToCart} onRemove={removeFromCart} />
-            <ProductSection title="🥤 Beverages" products={PRODUCTS.drinks} cart={cart} onAdd={addToCart} onRemove={removeFromCart} scrollable />
-            <ProductSection title="💊 Pharma & Wellness" products={PRODUCTS.pharma} cart={cart} onAdd={addToCart} onRemove={removeFromCart} />
-            <ProductSection title="🧴 Hygiene & Care" products={PRODUCTS.hygiene} cart={cart} onAdd={addToCart} onRemove={removeFromCart} scrollable />
-            <ProductSection title="🎒 Travel Essentials" products={PRODUCTS.essentials} cart={cart} onAdd={addToCart} onRemove={removeFromCart} />
-          </>
-        )}
-      </main>
-
-      {/* CART BAR */}
-      <AnimatePresence>
-        {totalItems > 0 && (
-          <motion.div className="bk-cart-bar"
-            initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-            transition={{ type: 'spring', damping: 24, stiffness: 280 }}
-          >
-            <div className="bk-cart-inner" onClick={() => setCartOpen(true)}>
-              <div className="bk-cart-left">
-                <span className="bk-cart-items">
-                  {totalItems} item{totalItems > 1 ? 's' : ''}
-                  <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(255,255,255,0.5)', display: 'inline-block' }} />
-                  ₹{totalPrice + 5}
-                </span>
-                <span className="bk-cart-sub">Extra charges may apply</span>
-              </div>
-              <div className="bk-cart-action">View Cart <ChevronRight size={16} /></div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <footer className="ts-footer">
+          <Logo h={36} />
+          <p>RailQuick — On-train delivery · All rights reserved © 2026</p>
+        </footer>
+      </div>
     </div>
   )
 }
 
-export default App
+// ──────────────────────────────────────────────────────────────
+// SHOPPING CONTENT (shared between mobile & desktop)
+// ──────────────────────────────────────────────────────────────
+function ShoppingContent({ search, cart, onAdd, onRemove }) {
+  const filter = prods =>
+    search ? prods.filter(p => p.name.toLowerCase().includes(search.toLowerCase())) : prods
+
+  return (
+    <>
+      <div className="spotlight">
+        <div className="spotlight-txt">
+          <h3>⚡ In-Train Delivery Active</h3>
+          <p>Products delivered straight to your berth</p>
+        </div>
+        <div className="spotlight-ico"><Zap size={28} /></div>
+      </div>
+
+      {/* Flash deals banner */}
+      <div className="flash-banner">
+        <div className="flash-banner-txt">
+          <h3>🔥 Flash Sale — Flat 20% OFF</h3>
+          <p>On all Snacks & Beverages today</p>
+        </div>
+        <div className="flash-banner-right">Shop <ChevronRight size={15} /></div>
+      </div>
+
+      {/* Mobile category chips */}
+      <div className="cats-wrap">
+        <div className="cats-head">Shop by Category</div>
+        <div className="cats-row">
+          {CATEGORIES.map(c => (
+            <div key={c.name} className="cat-chip">
+              <div className="cat-chip-ico"><img src={c.icon} alt={c.name} /></div>
+              <span className="cat-chip-name">{c.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <PromoCarousel />
+      <TrustStrip />
+
+      <Section title="Bestsellers" icon="🔥" products={filter(PRODUCTS.best)} cart={cart} onAdd={onAdd} onRemove={onRemove} />
+      <Section title="Snacks & Sweets" icon="🍿" products={filter(PRODUCTS.snacks)} cart={cart} onAdd={onAdd} onRemove={onRemove} />
+      <Section title="Beverages" icon="🥤" products={filter(PRODUCTS.drinks)} cart={cart} onAdd={onAdd} onRemove={onRemove} />
+      <Section title="Travel Essentials" icon="🎒" products={filter(PRODUCTS.travel)} cart={cart} onAdd={onAdd} onRemove={onRemove} />
+    </>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────
+// APP
+// ──────────────────────────────────────────────────────────────
+export default function App() {
+  const [train, setTrain] = useState(null)
+  const [cart, setCart] = useState({})
+  const [cartOpen, setCartOpen] = useState(false)
+  const [formOpen, setFormOpen] = useState(false)
+  const [tracking, setTracking] = useState(false)
+  const [done, setDone] = useState(false)
+  const [orderInfo, setOrderInfo] = useState(null)
+  const [search, setSearch] = useState('')
+  const [tab, setTab] = useState('home')
+  const [sidebarCat, setSidebarCat] = useState(CATEGORIES[0].name)
+
+  const add = p => setCart(c => ({ ...c, [p.id]: { ...p, qty: (c[p.id]?.qty || 0) + 1 } }))
+  const rem = id => setCart(c => {
+    const e = c[id]; if (!e) return c
+    if (e.qty <= 1) { const { [id]: _, ...r } = c; return r }
+    return { ...c, [id]: { ...e, qty: e.qty - 1 } }
+  })
+  const reset = () => { setCart({}); setDone(false); setOrderInfo(null); setTrain(null) }
+
+  const itemCount = Object.values(cart).reduce((s, i) => s + i.qty, 0)
+  const totalVal = Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0)
+
+  const handleTab = t => {
+    setTab(t)
+    if (t === 'cart' && itemCount > 0) setCartOpen(true)
+  }
+
+  // ── Screens ──
+  if (!train) return <TrainScreen onSelect={setTrain} />
+
+  if (done && orderInfo) return (
+    <SuccessScreen orderInfo={orderInfo} onGoHome={reset} />
+  )
+
+  return (
+    <div className="app-shell">
+
+      {/* ── Tracking overlay ── */}
+      <AnimatePresence>
+        {tracking && (
+          <OrderTracking
+            orderInfo={orderInfo}
+            onComplete={() => { setTracking(false); setDone(true) }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Cart drawer ── */}
+      <AnimatePresence>
+        {cartOpen && (
+          <CartDrawer cart={cart} onClose={() => setCartOpen(false)}
+            onCheckout={() => { setCartOpen(false); setFormOpen(true) }}
+            onAdd={add} onRemove={rem} />
+        )}
+      </AnimatePresence>
+
+      {/* ── Order form ── */}
+      <AnimatePresence>
+        {formOpen && (
+          <OrderForm cart={cart} train={train} onClose={() => setFormOpen(false)}
+            onConfirm={info => { setOrderInfo(info); setFormOpen(false); setTracking(true) }} />
+        )}
+      </AnimatePresence>
+
+      {/* ── Desktop nav ── */}
+      <DesktopNav
+        train={train} search={search} onSearch={setSearch}
+        cartCount={itemCount} onCart={() => setCartOpen(true)}
+        onBack={() => setTrain(null)}
+      />
+
+      {/* ── Desktop layout: sidebar + main ── */}
+      <div className="app-layout">
+        <DesktopSidebar active={sidebarCat} onSelect={setSidebarCat} />
+
+        <div className="app-main">
+
+          {/* ── Mobile header ── */}
+          <header className="mob-hdr">
+            <div className="mob-hdr-row1">
+              <div className="mob-hdr-back" onClick={() => setTrain(null)}>
+                <ArrowLeft size={16} />
+                <div className="mob-hdr-back-info">
+                  <div className="mob-hdr-train">Train {train.trainNo}</div>
+                  <div className="mob-hdr-route">{train.from} → {train.to}</div>
+                </div>
+              </div>
+              <div className="mob-hdr-logo"><Logo h={40} /></div>
+              <button className="mob-hdr-cart-btn" onClick={() => setCartOpen(true)}>
+                <ShoppingBag size={20} />
+                {itemCount > 0 && <span className="mob-hdr-cart-badge">{itemCount}</span>}
+              </button>
+            </div>
+            <div className="mob-hdr-search">
+              <Search size={16} />
+              <input
+                placeholder="Search snacks, drinks, essentials…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+          </header>
+
+          {/* ── Mobile delivery bar ── */}
+          <div className="mob-delivery-bar">
+            <div className="pulse-dot" />
+            <Zap size={13} />
+            <span>Delivering in <strong>5 mins</strong> · Train {train.trainNo}</span>
+          </div>
+
+          {/* ── Mobile content ── */}
+          <div className="main-inner" style={{ paddingBottom: itemCount > 0 ? 148 : 88 }}>
+            <ShoppingContent search={search} cart={cart} onAdd={add} onRemove={rem} />
+          </div>
+
+          {/* ── Desktop content ── */}
+          <div className="d-main-inner" style={{ paddingBottom: itemCount > 0 ? 90 : 32 }}>
+            <ShoppingContent search={search} cart={cart} onAdd={add} onRemove={rem} />
+          </div>
+
+          {/* ── Bottom nav (mobile) ── */}
+          <BottomNav tab={tab} onTab={handleTab} cartCount={itemCount} />
+
+          {/* ── Float cart bar ── */}
+          <AnimatePresence>
+            {itemCount > 0 && (
+              <motion.div className="cart-float"
+                initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
+                transition={{ type: 'spring', damping: 26, stiffness: 300 }}>
+                <div className="cart-float-inner" onClick={() => setCartOpen(true)}>
+                  <div className="cart-float-left">
+                    <span className="cart-float-label">{itemCount} ITEM{itemCount > 1 ? 'S' : ''} ADDED</span>
+                    <span className="cart-float-price">₹{totalVal + 5}</span>
+                  </div>
+                  <div className="cart-float-right">View Cart <ChevronRight size={16} /></div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+        </div>{/* end app-main */}
+      </div>{/* end app-layout */}
+    </div>
+  )
+}
