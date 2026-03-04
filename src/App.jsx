@@ -311,112 +311,7 @@ function DesktopSidebar({ active, onSelect }) {
   )
 }
 
-// ──────────────────────────────────────────────────────────────
-// PROFILE SCREEN — Google Sign-In
-// ──────────────────────────────────────────────────────────────
-function ProfileScreen() {
-  const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('rq_user') || 'null') } catch { return null }
-  })
-  const [phone, setPhone] = useState('')
-  const [otp, setOtp] = useState('')
-  const [step, setStep] = useState(1)
-  const [loading, setLoading] = useState(false)
 
-  const handleSendOtp = () => {
-    if (phone.length === 10) {
-      setLoading(true)
-      setTimeout(() => {
-        setLoading(false)
-        setStep(2)
-      }, 800)
-    }
-  }
-
-  const handleVerifyOtp = () => {
-    if (otp.length === 4) {
-      setLoading(true)
-      setTimeout(() => {
-        const u = { name: 'Train Traveller', phone: '+91 ' + phone, picture: null }
-        setUser(u)
-        localStorage.setItem('rq_user', JSON.stringify(u))
-        setLoading(false)
-      }, 1200)
-    }
-  }
-
-  const signOut = () => {
-    setUser(null)
-    setStep(1)
-    setPhone('')
-    setOtp('')
-    localStorage.removeItem('rq_user')
-  }
-
-  if (user) {
-    return (
-      <motion.div className="profile-screen" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="profile-avatar-wrap">
-          {user.picture
-            ? <img className="profile-avatar" src={user.picture} alt={user.name} referrerPolicy="no-referrer" />
-            : <div className="profile-avatar-fallback">{user.name?.[0] || 'U'}</div>}
-          <div className="profile-online-dot" />
-        </div>
-        <div className="profile-name">{user.name}</div>
-        <div className="profile-email">{user.phone}</div>
-        <div className="profile-card">
-          <div className="profile-card-row"><Phone size={16} /><span>Verified Mobile Number</span></div>
-          <div className="profile-card-row"><Shield size={16} /><span>Your data is safe with us</span></div>
-          <div className="profile-card-row"><Zap size={16} /><span>Delivery in 5 minutes guaranteed</span></div>
-        </div>
-        <div className="profile-orders-hd">Your Recent Orders</div>
-        <div className="profile-orders-empty">
-          <ShoppingBag size={36} />
-          <p>No orders yet on this device.</p>
-          <span>Place your first order to see it here!</span>
-        </div>
-        <button className="profile-signout" onClick={signOut}>
-          <LogOut size={16} />Sign Out
-        </button>
-        <div className="profile-powered">RailQuick · On-Train Delivery</div>
-      </motion.div>
-    )
-  }
-
-  return (
-    <motion.div className="profile-screen profile-login" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}>
-      {step === 1 ? (
-        <>
-          <div className="profile-login-icon">🚀</div>
-          <h2 className="profile-login-title">Sign in to RailQuick</h2>
-          <p className="profile-login-sub">Track your orders, get personalised deals, and enjoy a seamless experience.</p>
-          <div className="mock-login-box">
-            <div className="mock-login-input-wrap">
-              <span>+91</span>
-              <input type="tel" placeholder="Enter mobile number" maxLength={10} value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} />
-            </div>
-            <button className="mock-login-btn" disabled={phone.length < 10 || loading} onClick={handleSendOtp}>
-              {loading ? 'Sending OTP...' : 'Continue'}
-            </button>
-          </div>
-          <div className="profile-login-note">By continuing, you agree to our Terms & Conditions</div>
-        </>
-      ) : (
-        <>
-          <h2 className="profile-login-title" style={{ marginTop: 40 }}>Verify Details</h2>
-          <p className="profile-login-sub">OTP sent to +91 {phone}</p>
-          <div className="mock-login-box">
-            <input type="tel" className="mock-otp-input" placeholder="Enter 4-digit OTP" maxLength={4} value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} />
-            <button className="mock-login-btn" disabled={otp.length < 4 || loading} onClick={handleVerifyOtp}>
-              {loading ? 'Verifying...' : 'Verify OTP'}
-            </button>
-          </div>
-        </>
-      )}
-      <div className="profile-powered" style={{ marginTop: 'auto' }}>RailQuick · On-Train Delivery</div>
-    </motion.div>
-  )
-}
 
 // ──────────────────────────────────────────────────────────────
 // BOTTOM NAV (mobile) — Home / Categories / Cart / Profile
@@ -428,7 +323,6 @@ function BottomNav({ tab, onTab, cartCount }) {
         { key: 'home', icon: <Home size={22} />, label: 'Home' },
         { key: 'cats', icon: <Grid3X3 size={22} />, label: 'Categories' },
         { key: 'cart', icon: null, label: 'Cart', isCart: true },
-        { key: 'me', icon: <User size={22} />, label: 'Profile' },
       ].map(it => (
         <motion.button key={it.key}
           className={`btm-btn ${tab === it.key ? 'active' : ''}`}
@@ -475,7 +369,7 @@ function MobileCategoriesScreen({ onSelect }) {
 // ──────────────────────────────────────────────────────────────
 // DESKTOP TOP NAV
 // ──────────────────────────────────────────────────────────────
-function DesktopNav({ train, search, onSearch, cartCount, onCart, onProfile, onBack }) {
+function DesktopNav({ train, search, onSearch, cartCount, onCart, onBack }) {
   return (
     <nav className="d-nav">
       <div className="d-nav-inner">
@@ -496,10 +390,6 @@ function DesktopNav({ train, search, onSearch, cartCount, onCart, onProfile, onB
           />
         </div>
         <div className="d-nav-actions" style={{ display: 'flex', gap: 12 }}>
-          <button className="d-nav-profile-btn" onClick={onProfile} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 18px', borderRadius: 100, border: '1.5px solid var(--border)', background: 'white', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all .2s' }}>
-            <User size={18} />
-            Profile
-          </button>
           <button className="d-nav-cart" onClick={onCart}>
             <ShoppingBag size={20} />
             My Cart
@@ -1004,7 +894,6 @@ export default function App() {
       <DesktopNav
         train={train} search={search} onSearch={setSearch}
         cartCount={itemCount} onCart={() => setCartOpen(true)}
-        onProfile={() => handleTab('me')}
         onBack={() => setTrain(null)}
       />
 
@@ -1055,22 +944,20 @@ export default function App() {
           {/* ─ MOBILE content ─ */}
           <div className="main-inner" ref={mainRef} style={{ paddingBottom: itemCount > 0 ? 152 : 92 }}>
             <AnimatePresence mode="wait">
-              {tab === 'me'
-                ? <ProfileScreen key="profile" />
-                : showMobileCats
-                  ? <MobileCategoriesScreen key="cats-screen" onSelect={handleCatClick} />
-                  : showCategoryPage
-                    ? (
-                      <motion.div key={`cat-${selectedCat}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
-                        <div className="cat-view-header">
-                          <button className="cat-back-btn" onClick={() => { setSelectedCat(null); setTab('home') }}>
-                            <ArrowLeft size={16} /> All Categories
-                          </button>
-                        </div>
-                        <CategoryView cat={selectedCat} cart={cart} onAdd={add} onRemove={rem} />
-                      </motion.div>
-                    )
-                    : <HomeContent key="home" search={search} cart={cart} onAdd={add} onRemove={rem} onCatClick={handleCatClick} />
+              {showMobileCats
+                ? <MobileCategoriesScreen key="cats-screen" onSelect={handleCatClick} />
+                : showCategoryPage
+                  ? (
+                    <motion.div key={`cat-${selectedCat}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+                      <div className="cat-view-header">
+                        <button className="cat-back-btn" onClick={() => { setSelectedCat(null); setTab('home') }}>
+                          <ArrowLeft size={16} /> All Categories
+                        </button>
+                      </div>
+                      <CategoryView cat={selectedCat} cart={cart} onAdd={add} onRemove={rem} />
+                    </motion.div>
+                  )
+                  : <HomeContent key="home" search={search} cart={cart} onAdd={add} onRemove={rem} onCatClick={handleCatClick} />
               }
             </AnimatePresence>
           </div>
@@ -1078,20 +965,18 @@ export default function App() {
           {/* ─ DESKTOP content ─ */}
           <div className="d-main-inner" style={{ paddingBottom: itemCount > 0 ? 90 : 32 }}>
             <AnimatePresence mode="wait">
-              {tab === 'me'
-                ? <ProfileScreen key="profile" />
-                : showCategoryPage
-                  ? (
-                    <motion.div key={`cat-${selectedCat}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-                      <div className="cat-view-header" style={{ marginBottom: 20 }}>
-                        <button className="cat-back-btn" onClick={() => { setSelectedCat(null); setSidebarCat('All') }}>
-                          <ArrowLeft size={16} /> Back
-                        </button>
-                      </div>
-                      <CategoryView cat={selectedCat} cart={cart} onAdd={add} onRemove={rem} />
-                    </motion.div>
-                  )
-                  : <HomeContent key="home" search={search} cart={cart} onAdd={add} onRemove={rem} onCatClick={handleCatClick} />
+              {showCategoryPage
+                ? (
+                  <motion.div key={`cat-${selectedCat}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+                    <div className="cat-view-header" style={{ marginBottom: 20 }}>
+                      <button className="cat-back-btn" onClick={() => { setSelectedCat(null); setSidebarCat('All') }}>
+                        <ArrowLeft size={16} /> Back
+                      </button>
+                    </div>
+                    <CategoryView cat={selectedCat} cart={cart} onAdd={add} onRemove={rem} />
+                  </motion.div>
+                )
+                : <HomeContent key="home" search={search} cart={cart} onAdd={add} onRemove={rem} onCatClick={handleCatClick} />
               }
             </AnimatePresence>
           </div>
