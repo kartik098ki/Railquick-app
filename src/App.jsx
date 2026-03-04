@@ -76,39 +76,185 @@ const CATEGORIES = [
   { name: 'Travel', icon: 'https://cdn-icons-png.flaticon.com/128/3124/3124073.png', type: 'soon' },
 ]
 
+// stock=0 → unavailable, stock>0 → in stock, stock=null → unlimited
 const PRODUCTS = {
   best: [
-    { id: 1, name: 'Bisleri Water', variant: '1 L', price: 20, mrp: 20, cat: 'Essentials', img: 'https://images.jdmagicbox.com/quickquotes/images_main/bisleri-water-bottle-1-litre-297413498-dlh4a.jpg' },
-    { id: 2, name: "Lay's Classic Salted", variant: '52 g', price: 20, mrp: 20, cat: 'Snacks', img: 'https://m.media-amazon.com/images/I/81aF2UPFPUL._SL1500_.jpg' },
-    { id: 3, name: 'Dolo 650 Tablet', variant: '15 Tabs', price: 30, mrp: 35, cat: 'Essentials', img: 'https://www.netmeds.com/images/product-v1/600x600/902498/dolo_650mg_tablet_15s_0.jpg' },
-    { id: 4, name: 'Masala Chai', variant: '200 ml', price: 40, mrp: 50, cat: 'Drinks', img: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80' },
-    { id: 5, name: 'Maggi 2-Min Noodles', variant: '70 g', price: 14, mrp: 14, cat: 'Snacks', img: 'https://m.media-amazon.com/images/I/71A4lZzwIAL._SL1500_.jpg' },
-    { id: 6, name: 'Dettol Sanitizer', variant: '50 ml', price: 29, mrp: 35, cat: 'Hygiene', img: 'https://m.media-amazon.com/images/I/51iS-FsCv2L._SL1000_.jpg' },
+    // Rail Neer — official IRCTC water bottle
+    {
+      id: 1, name: 'Rail Neer', variant: '1 L', price: 20, mrp: 20, cat: 'Essentials', stock: 20,
+      img: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlEkYrxzRLgvjlwbeBL9KbOetIivrLgvUTAQ&s'
+    },
+    // Exact products from user's list
+    {
+      id: 2, name: 'Red Lays', variant: '26 g', price: 19, mrp: 20, cat: 'Snacks', stock: 1,
+      img: 'https://www.quickpantry.in/cdn/shop/products/lay-s-spanish-tomato-tango-potato-chips-32-g-quick-pantry.jpg?v=1710538823'
+    },
+    {
+      id: 3, name: 'Kurkure Masala', variant: '75 g', price: 19, mrp: 20, cat: 'Snacks', stock: 1,
+      img: 'https://cdn.zigpy.com/filemanager/admin/bikaji/admin/kurkure-masala-munch-78g.webp?w=800&h=600'
+    },
+    {
+      id: 4, name: 'KitKat', variant: '41.5 g', price: 30, mrp: 35, cat: 'Sweets', stock: 1,
+      img: 'https://bisarga.com/wp-content/uploads/2021/06/Nestle-KitKat-Chocolate-37.3g-Pouch-24.jpg'
+    },
+    {
+      id: 5, name: 'Dairy Milk', variant: '36 g', price: 20, mrp: 20, cat: 'Sweets', stock: 3,
+      img: 'https://instamart-media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto/NI_CATALOG/IMAGES/CIW/2025/5/29/f6ffea1f-a9ed-495d-ab14-aac27e9a7787_593_1.png'
+    },
+    {
+      id: 6, name: 'Snickers', variant: '40 g', price: 20, mrp: 25, cat: 'Sweets', stock: 1,
+      img: 'https://www.snickers.com/cdn-cgi/image/width=600,height=600,f=auto,quality=90/sites/g/files/fnmzdf616/files/migrate-product-files/dryeqrv2efldaaoyceat.png'
+    },
   ],
   snacks: [
-    { id: 7, name: 'Kurkure Masala', variant: '75 g', price: 20, mrp: 20, cat: 'Snacks', img: 'https://m.media-amazon.com/images/I/81X7baxhvBL._SL1500_.jpg' },
-    { id: 8, name: 'Dairy Milk Silk', variant: '60 g', price: 80, mrp: 90, cat: 'Sweets', img: 'https://m.media-amazon.com/images/I/71hHVJIBFVL._SL1500_.jpg' },
-    { id: 9, name: 'Parle-G Gold', variant: '100 g', price: 20, mrp: 20, cat: 'Snacks', img: 'https://m.media-amazon.com/images/I/61-+pBR9N-L._SL1200_.jpg' },
-    { id: 10, name: 'Haldiram Bhujia', variant: '200 g', price: 55, mrp: 60, cat: 'Snacks', img: 'https://m.media-amazon.com/images/I/71EWvgmGv6L._SL1500_.jpg' },
-    { id: 17, name: 'KitKat 4F', variant: '41.5 g', price: 60, mrp: 65, cat: 'Sweets', img: 'https://m.media-amazon.com/images/I/61oKH1tePbL._SL1500_.jpg' },
-    { id: 18, name: 'Oreo Original', variant: '120 g', price: 35, mrp: 40, cat: 'Snacks', img: 'https://m.media-amazon.com/images/I/61w3JGh8d8L._SL1500_.jpg' },
+    {
+      id: 2, name: 'Red Lays', variant: '26 g', price: 19, mrp: 20, cat: 'Snacks', stock: 1,
+      img: 'https://www.quickpantry.in/cdn/shop/products/lay-s-spanish-tomato-tango-potato-chips-32-g-quick-pantry.jpg?v=1710538823'
+    },
+    {
+      id: 7, name: 'Takatak', variant: '60 g', price: 19, mrp: 20, cat: 'Snacks', stock: 1,
+      img: 'https://dilkhushcandy.com/wp-content/uploads/2024/09/49.webp'
+    },
+    {
+      id: 3, name: 'Kurkure Masala', variant: '75 g', price: 19, mrp: 20, cat: 'Snacks', stock: 1,
+      img: 'https://cdn.zigpy.com/filemanager/admin/bikaji/admin/kurkure-masala-munch-78g.webp?w=800&h=600'
+    },
+    {
+      id: 8, name: 'Puffcorn', variant: '55 g', price: 19, mrp: 20, cat: 'Snacks', stock: 1,
+      img: 'https://m.media-amazon.com/images/I/81wJJZZ7XuL.jpg'
+    },
+    {
+      id: 9, name: 'Green Kurkure', variant: '75 g', price: 19, mrp: 20, cat: 'Snacks', stock: 1,
+      img: 'https://m.media-amazon.com/images/I/71GN9iowhxL._AC_UF894,1000_QL80_.jpg'
+    },
+    {
+      id: 10, name: 'Oreo', variant: '120 g', price: 45, mrp: 50, cat: 'Snacks', stock: 2,
+      img: 'https://gharstuff.com/wp-content/uploads/2024/05/3589c0b1-3308-4678-b269-e5066493d0b6.jpg'
+    },
+    {
+      id: 11, name: 'Munch', variant: '35 g', price: 25, mrp: 25, cat: 'Snacks', stock: 1,
+      img: 'https://5.imimg.com/data5/ANDROID/Default/2021/9/KY/JY/ER/27272597/product-jpeg-500x500.jpeg'
+    },
+    // Unavailable
+    {
+      id: 20, name: 'Maggi Noodles', variant: '70 g', price: 14, mrp: 14, cat: 'Snacks', stock: 0,
+      img: 'https://images.openfoodfacts.org/images/products/890/130/100/5657/front_en.73.400.jpg'
+    },
+    {
+      id: 21, name: 'Haldiram Bhujia', variant: '200 g', price: 55, mrp: 60, cat: 'Snacks', stock: 0,
+      img: 'https://images.openfoodfacts.org/images/products/890/010/002/8038/front_en.62.400.jpg'
+    },
+    {
+      id: 22, name: 'Parle-G Gold', variant: '100 g', price: 10, mrp: 10, cat: 'Snacks', stock: 0,
+      img: 'https://images.openfoodfacts.org/images/products/890/010/000/1067/front_en.190.400.jpg'
+    },
+  ],
+  sweets: [
+    {
+      id: 4, name: 'KitKat', variant: '41.5 g', price: 30, mrp: 35, cat: 'Sweets', stock: 1,
+      img: 'https://bisarga.com/wp-content/uploads/2021/06/Nestle-KitKat-Chocolate-37.3g-Pouch-24.jpg'
+    },
+    {
+      id: 5, name: 'Dairy Milk', variant: '36 g', price: 20, mrp: 20, cat: 'Sweets', stock: 3,
+      img: 'https://instamart-media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto/NI_CATALOG/IMAGES/CIW/2025/5/29/f6ffea1f-a9ed-495d-ab14-aac27e9a7787_593_1.png'
+    },
+    {
+      id: 12, name: 'Dairy Milk Silk', variant: '60 g', price: 20, mrp: 25, cat: 'Sweets', stock: 2,
+      img: 'https://cococart.in/cdn/shop/files/1CH2564.png?v=1728466712'
+    },
+    {
+      id: 13, name: 'Nestle Munch', variant: '40 g', price: 20, mrp: 25, cat: 'Sweets', stock: 2,
+      img: 'https://5.imimg.com/data5/ANDROID/Default/2021/9/KY/JY/ER/27272597/product-jpeg-500x500.jpeg'
+    },
+    {
+      id: 6, name: 'Snickers', variant: '40 g', price: 20, mrp: 25, cat: 'Sweets', stock: 1,
+      img: 'https://www.snickers.com/cdn-cgi/image/width=600,height=600,f=auto,quality=90/sites/g/files/fnmzdf616/files/migrate-product-files/dryeqrv2efldaaoyceat.png'
+    },
+    {
+      id: 14, name: '5 Star', variant: '40 g', price: 20, mrp: 20, cat: 'Sweets', stock: 2,
+      img: 'https://www.quickpantry.in/cdn/shop/products/cadbury-5-star-chocolate-bar-25-g-quick-pantry.jpg?v=1710538893'
+    },
+    {
+      id: 11, name: 'Munch', variant: '35 g', price: 25, mrp: 25, cat: 'Sweets', stock: 1,
+      img: 'https://5.imimg.com/data5/ANDROID/Default/2021/9/KY/JY/ER/27272597/product-jpeg-500x500.jpeg'
+    },
   ],
   drinks: [
-    { id: 11, name: 'Coca-Cola', variant: '300 ml', price: 35, mrp: 40, cat: 'Drinks', img: 'https://m.media-amazon.com/images/I/61eBPotEEAL._SL1200_.jpg' },
-    { id: 12, name: 'Real Mango Juice', variant: '200 ml', price: 25, mrp: 30, cat: 'Drinks', img: 'https://m.media-amazon.com/images/I/61EB2K5KsoL._SL1500_.jpg' },
-    { id: 13, name: 'Filter Coffee', variant: '150 ml', price: 45, mrp: 50, cat: 'Drinks', img: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80' },
-    { id: 19, name: 'Sprite Can', variant: '300 ml', price: 30, mrp: 35, cat: 'Drinks', img: 'https://m.media-amazon.com/images/I/31wv9D3pXRL.jpg' },
-    { id: 20, name: 'Nimbu Pani', variant: '200 ml', price: 20, mrp: 25, cat: 'Drinks', img: 'https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=400&q=80' },
+    // Frooti — qty 20 as specified
+    {
+      id: 15, name: 'Frooti Juice', variant: '200 ml', price: 10, mrp: 15, cat: 'Drinks', stock: 20,
+      img: 'https://gharstuff.com/wp-content/uploads/2018/12/Frooti-Mango-Fruit-Drink-160ml-2.jpg'
+    },
+    {
+      id: 16, name: 'Coca-Cola', variant: '300 ml', price: 35, mrp: 40, cat: 'Drinks', stock: 0,
+      img: 'https://images.openfoodfacts.org/images/products/548/000/034/4204/front_en.416.400.jpg'
+    },
+    {
+      id: 17, name: 'Sprite', variant: '300 ml', price: 30, mrp: 35, cat: 'Drinks', stock: 0,
+      img: 'https://images.openfoodfacts.org/images/products/548/001/522/4004/front_en.181.400.jpg'
+    },
+    {
+      id: 18, name: 'Rail Neer', variant: '1 L', price: 20, mrp: 20, cat: 'Drinks', stock: 20,
+      img: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlEkYrxzRLgvjlwbeBL9KbOetIivrLgvUTAQ&s'
+    },
+    {
+      id: 19, name: 'Masala Chai', variant: '200 ml', price: 40, mrp: 40, cat: 'Drinks', stock: 0,
+      img: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80'
+    },
+    // Unavailable
+    {
+      id: 23, name: 'Filter Coffee', variant: '150 ml', price: 45, mrp: 50, cat: 'Drinks', stock: 0,
+      img: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80'
+    },
+    {
+      id: 24, name: 'Nimbu Pani', variant: '200 ml', price: 20, mrp: 25, cat: 'Drinks', stock: 0,
+      img: 'https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=400&q=80'
+    },
   ],
   hygiene: [
-    { id: 6, name: 'Dettol Sanitizer', variant: '50 ml', price: 29, mrp: 35, cat: 'Hygiene', img: 'https://m.media-amazon.com/images/I/51iS-FsCv2L._SL1000_.jpg' },
-    { id: 21, name: 'Hand Sanitizer', variant: '100 ml', price: 59, mrp: 75, cat: 'Hygiene', img: 'https://m.media-amazon.com/images/I/51iS-FsCv2L._SL1000_.jpg' },
+    {
+      id: 25, name: 'Tissue Paper', variant: 'Pack of 2', price: 29, mrp: 35, cat: 'Hygiene', stock: 2,
+      img: 'https://static1.industrybuying.com/products/cleaning/tissue-paper-cloth-wipes/tissue-paper/CLE.TIS.427365323_1726054906208.webp'
+    },
+    {
+      id: 26, name: 'Wet Wipes', variant: 'Pack of 10', price: 49, mrp: 60, cat: 'Hygiene', stock: 2,
+      img: 'https://images.apollo247.in/pub/media/catalog/product/d/e/det0217-1_1_.jpg?tr=q-80,f-webp,w-400,dpr-3,c-at_max%20400w'
+    },
+    {
+      id: 27, name: 'Dettol Sanitizer', variant: '50 ml', price: 29, mrp: 35, cat: 'Hygiene', stock: null,
+      img: 'https://ik.imagekit.io/wlfr/wellness/images/products/264511-1.jpg/tr:w-3840,c-at_max,cm-pad_resize,ar-1210-700,pr-true,f-auto,q-70,l-image,i-Wellness_logo_BDwqbQao9.png,lfo-bottom_right,w-200,h-90,c-at_least,cm-pad_resize,l-end'
+    },
+    // Unavailable
+    {
+      id: 28, name: 'Face Mask', variant: 'Pack of 5', price: 39, mrp: 50, cat: 'Hygiene', stock: 0,
+      img: 'https://images.unsplash.com/photo-1599045685012-7b8b1a3ee2be?w=400&q=80'
+    },
+    {
+      id: 29, name: 'Hand Cream', variant: '50 ml', price: 59, mrp: 75, cat: 'Hygiene', stock: 0,
+      img: 'https://images.unsplash.com/photo-1556228852-80b6e5eeff06?w=400&q=80'
+    },
+  ],
+  essentials: [
+    {
+      id: 1, name: 'Rail Neer', variant: '1 L', price: 20, mrp: 20, cat: 'Essentials', stock: 20,
+      img: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlEkYrxzRLgvjlwbeBL9KbOetIivrLgvUTAQ&s'
+    },
+    // Unavailable
+    {
+      id: 31, name: 'Bandage Strip', variant: 'Pack of 5', price: 25, mrp: 30, cat: 'Essentials', stock: 0,
+      img: 'https://images.unsplash.com/photo-1603398938378-e54eab446dde?w=400&q=80'
+    },
+    {
+      id: 32, name: 'ORS Powder', variant: '21 g', price: 15, mrp: 20, cat: 'Essentials', stock: 0,
+      img: 'https://images.unsplash.com/photo-1512069772995-ec65ed45afd6?w=400&q=80'
+    },
   ],
 }
 
-// ALL products flat list for search + "All" category
+// ALL products flat list — deduplicated by id
 const ALL_PRODUCTS = [
-  ...PRODUCTS.best, ...PRODUCTS.snacks, ...PRODUCTS.drinks, ...PRODUCTS.hygiene
+  ...PRODUCTS.best, ...PRODUCTS.snacks, ...PRODUCTS.sweets,
+  ...PRODUCTS.drinks, ...PRODUCTS.hygiene, ...PRODUCTS.essentials
 ].reduce((acc, p) => acc.some(x => x.id === p.id) ? acc : [...acc, p], [])
 
 // Category → products mapping
@@ -152,7 +298,13 @@ function PromoCarousel() {
       setIdx(i => {
         const next = (i + 1) % PROMOS.length
         const child = ref.current?.children[next]
-        if (child) child.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
+        if (ref.current && child) {
+          // Use container specific scroll to prevent entire page jump
+          ref.current.scrollTo({
+            left: child.offsetLeft,
+            behavior: 'smooth'
+          })
+        }
         return next
       })
     }, 3400)
@@ -202,30 +354,42 @@ function TrustStrip() {
 function ProductCard({ product, qty, onAdd, onRemove }) {
   const [imgErr, setImgErr] = useState(false)
   const d = disc(product)
+  const unavailable = product.stock === 0
   return (
-    <motion.div className="pc" whileHover={{ y: -2 }} transition={{ duration: 0.16 }}>
+    <motion.div
+      className={`pc ${unavailable ? 'pc-unavailable' : ''}`}
+      whileHover={!unavailable ? { y: -3 } : {}}
+      transition={{ duration: 0.16 }}
+    >
       <div className="pc-img-box">
         {!imgErr && product.img
           ? <img className="pc-img" src={product.img} alt={product.name} onError={() => setImgErr(true)} />
           : <div className="pc-img-fallback">{product.name[0]}</div>}
-        {d > 0 && <div className="pc-disc-badge">{d}% OFF</div>}
+        {d > 0 && !unavailable && <div className="pc-disc-badge">{d}% OFF</div>}
+        {unavailable && <div className="pc-out-badge">OUT OF STOCK</div>}
+        {!unavailable && product.stock !== null && product.stock !== undefined && product.stock <= 3 && product.stock > 0 && (
+          <div className="pc-low-badge">Only {product.stock} left!</div>
+        )}
       </div>
       <div className="pc-body">
-        <div className="pc-time"><Timer size={9} />5 MINS</div>
+        {!unavailable && <div className="pc-time"><Timer size={9} />5 MINS</div>}
+        {unavailable && <div className="pc-time pc-time-na">UNAVAILABLE</div>}
         <div className="pc-name" title={product.name}>{product.name}</div>
         <div className="pc-var">{product.variant}</div>
         <div className="pc-foot">
           <div>
-            <span className="pc-price">₹{product.price}</span>
+            <span className="pc-price" style={unavailable ? { opacity: 0.45 } : {}}>₹{product.price}</span>
             {d > 0 && <span className="pc-mrp">₹{product.mrp}</span>}
           </div>
-          {qty === 0
-            ? <button className="pc-add" onClick={() => onAdd(product)}>ADD</button>
-            : <div className="pc-stepper">
-              <button onClick={() => onRemove(product.id)}>−</button>
-              <span>{qty}</span>
-              <button onClick={() => onAdd(product)}>+</button>
-            </div>}
+          {unavailable
+            ? <button className="pc-add pc-add-na" disabled>NOTIFY</button>
+            : qty === 0
+              ? <button className="pc-add" onClick={() => onAdd(product)}>ADD</button>
+              : <div className="pc-stepper">
+                <button onClick={() => onRemove(product.id)}>−</button>
+                <span>{qty}</span>
+                <button onClick={() => onAdd(product)}>+</button>
+              </div>}
         </div>
       </div>
     </motion.div>
@@ -643,8 +807,7 @@ function TrainScreen({ onSelect }) {
         <nav className="ts-nav">
           <Logo h={56} />
           <div className="ts-nav-links">
-            <span>Our Service</span>
-            <span>Support</span>
+            <a href="https://wa.me/918882779769" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>Support</a>
           </div>
         </nav>
 
@@ -654,11 +817,11 @@ function TrainScreen({ onSelect }) {
             <h1 className="ts-title">
               Delivered to<br />your seat in<br /><span className="text-green">5 minutes</span>
             </h1>
-            <p className="ts-sub">On-board service delivering essentials, snacks &amp; medicines straight to your berth. Cash on delivery accepted.</p>
+            <p className="ts-sub">On-board service delivering essentials, snacks &amp; drinks straight to your berth — no waiting, cash on delivery.</p>
             <div className="ts-pills">
-              <div className="ts-pill"><Timer size={14} />Ultra Fast</div>
+              <div className="ts-pill"><Timer size={14} />5-Min Delivery</div>
               <div className="ts-pill"><Shield size={14} />Quality Assured</div>
-              <div className="ts-pill"><Flame size={14} />10,000+ Orders</div>
+              <div className="ts-pill"><Tag size={14} />Cash on Delivery</div>
             </div>
           </div>
           <div className="ts-hero-right">
@@ -676,9 +839,9 @@ function TrainScreen({ onSelect }) {
 
         <div className="ts-features">
           {[
-            { icon: <Timer size={22} />, title: '5-Min Delivery', sub: 'Vendor walks to your berth directly' },
-            { icon: <Shield size={22} />, title: 'Quality Assured', sub: 'All products checked before delivery' },
-            { icon: <Bolt size={22} />, title: 'Live Tracking', sub: 'Real-time status from dispatch to seat' },
+            { icon: <Timer size={22} />, title: '5-Min Delivery', sub: 'Vendor walks directly to your berth — no platform runs' },
+            { icon: <Shield size={22} />, title: 'Quality Assured', sub: 'Every product checked and sealed before delivery' },
+            { icon: <Bolt size={22} />, title: 'Cash on Delivery', sub: 'No app, no UPI — pay comfortably at your seat' },
           ].map(f => (
             <div key={f.title} className="ts-feat">
               <div className="ts-feat-icon">{f.icon}</div>
@@ -793,8 +956,10 @@ function HomeContent({ search, cart, onAdd, onRemove, onCatClick }) {
       <TrustStrip />
 
       <Section title="Bestsellers" icon="🔥" products={filter(PRODUCTS.best)} cart={cart} onAdd={onAdd} onRemove={onRemove} />
-      <Section title="Snacks & Sweets" icon="🍿" products={filter(PRODUCTS.snacks)} cart={cart} onAdd={onAdd} onRemove={onRemove} />
-      <Section title="Beverages" icon="🥤" products={filter(PRODUCTS.drinks)} cart={cart} onAdd={onAdd} onRemove={onRemove} />
+      <Section title="Snacks &amp; Namkeen" icon="🍿" products={filter(PRODUCTS.snacks)} cart={cart} onAdd={onAdd} onRemove={onRemove} />
+      <Section title="Chocolates &amp; Sweets" icon="🍫" products={filter(PRODUCTS.sweets)} cart={cart} onAdd={onAdd} onRemove={onRemove} />
+      <Section title="Drinks &amp; Beverages" icon="🥤" products={filter(PRODUCTS.drinks)} cart={cart} onAdd={onAdd} onRemove={onRemove} />
+      <Section title="Hygiene &amp; Essentials" icon="🧼" products={filter([...PRODUCTS.hygiene, ...PRODUCTS.essentials])} cart={cart} onAdd={onAdd} onRemove={onRemove} />
     </>
   )
 }
