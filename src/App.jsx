@@ -321,6 +321,7 @@ function ProfileScreen() {
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [step, setStep] = useState(1)
+  const [loading, setLoading] = useState(false)
 
   const handleSendOtp = () => {
     if (phone.length === 10) {
@@ -340,7 +341,7 @@ function ProfileScreen() {
         setUser(u)
         localStorage.setItem('rq_user', JSON.stringify(u))
         setLoading(false)
-      }, 1000)
+      }, 1200)
     }
   }
 
@@ -429,7 +430,10 @@ function BottomNav({ tab, onTab, cartCount }) {
         { key: 'cart', icon: null, label: 'Cart', isCart: true },
         { key: 'me', icon: <User size={22} />, label: 'Profile' },
       ].map(it => (
-        <button key={it.key} className={`btm-btn ${tab === it.key ? 'active' : ''}`} onClick={() => onTab(it.key)}>
+        <motion.button key={it.key}
+          className={`btm-btn ${tab === it.key ? 'active' : ''}`}
+          onClick={() => onTab(it.key)}
+          whileTap={{ scale: 0.9 }}>
           {it.isCart
             ? <div className="btm-btn-icon btm-cart-wrap">
               <ShoppingBag size={22} />
@@ -437,7 +441,7 @@ function BottomNav({ tab, onTab, cartCount }) {
             </div>
             : <div className="btm-btn-icon">{it.icon}</div>}
           <span>{it.label}</span>
-        </button>
+        </motion.button>
       ))}
     </nav>
   )
@@ -471,11 +475,11 @@ function MobileCategoriesScreen({ onSelect }) {
 // ──────────────────────────────────────────────────────────────
 // DESKTOP TOP NAV
 // ──────────────────────────────────────────────────────────────
-function DesktopNav({ train, search, onSearch, cartCount, onCart, onBack }) {
+function DesktopNav({ train, search, onSearch, cartCount, onCart, onProfile, onBack }) {
   return (
     <nav className="d-nav">
       <div className="d-nav-inner">
-        <div className="d-nav-logo"><Logo h={52} /></div>
+        <div className="d-nav-logo" onClick={onBack} style={{ cursor: 'pointer' }}><Logo h={52} /></div>
         <div className="d-nav-train" onClick={onBack}>
           <ArrowLeft size={14} />
           <div>
@@ -491,11 +495,17 @@ function DesktopNav({ train, search, onSearch, cartCount, onCart, onBack }) {
             onChange={e => onSearch(e.target.value)}
           />
         </div>
-        <button className="d-nav-cart" onClick={onCart}>
-          <ShoppingBag size={20} />
-          My Cart
-          {cartCount > 0 && <span className="d-nav-cart-badge">{cartCount}</span>}
-        </button>
+        <div className="d-nav-actions" style={{ display: 'flex', gap: 12 }}>
+          <button className="d-nav-profile-btn" onClick={onProfile} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 18px', borderRadius: 100, border: '1.5px solid var(--border)', background: 'white', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all .2s' }}>
+            <User size={18} />
+            Profile
+          </button>
+          <button className="d-nav-cart" onClick={onCart}>
+            <ShoppingBag size={20} />
+            My Cart
+            {cartCount > 0 && <span className="d-nav-cart-badge">{cartCount}</span>}
+          </button>
+        </div>
       </div>
     </nav>
   )
@@ -994,6 +1004,7 @@ export default function App() {
       <DesktopNav
         train={train} search={search} onSearch={setSearch}
         cartCount={itemCount} onCart={() => setCartOpen(true)}
+        onProfile={() => handleTab('me')}
         onBack={() => setTrain(null)}
       />
 
@@ -1067,18 +1078,20 @@ export default function App() {
           {/* ─ DESKTOP content ─ */}
           <div className="d-main-inner" style={{ paddingBottom: itemCount > 0 ? 90 : 32 }}>
             <AnimatePresence mode="wait">
-              {showCategoryPage
-                ? (
-                  <motion.div key={`cat-${selectedCat}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-                    <div className="cat-view-header" style={{ marginBottom: 20 }}>
-                      <button className="cat-back-btn" onClick={() => { setSelectedCat(null); setSidebarCat('All') }}>
-                        <ArrowLeft size={16} /> Back
-                      </button>
-                    </div>
-                    <CategoryView cat={selectedCat} cart={cart} onAdd={add} onRemove={rem} />
-                  </motion.div>
-                )
-                : <HomeContent key="home" search={search} cart={cart} onAdd={add} onRemove={rem} onCatClick={handleCatClick} />
+              {tab === 'me'
+                ? <ProfileScreen key="profile" />
+                : showCategoryPage
+                  ? (
+                    <motion.div key={`cat-${selectedCat}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+                      <div className="cat-view-header" style={{ marginBottom: 20 }}>
+                        <button className="cat-back-btn" onClick={() => { setSelectedCat(null); setSidebarCat('All') }}>
+                          <ArrowLeft size={16} /> Back
+                        </button>
+                      </div>
+                      <CategoryView cat={selectedCat} cart={cart} onAdd={add} onRemove={rem} />
+                    </motion.div>
+                  )
+                  : <HomeContent key="home" search={search} cart={cart} onAdd={add} onRemove={rem} onCatClick={handleCatClick} />
               }
             </AnimatePresence>
           </div>
