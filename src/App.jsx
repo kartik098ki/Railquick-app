@@ -329,24 +329,29 @@ function distToSegment(p, v, w) {
   return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2);
 }
 
-// Exact major railway stations on the 14662 Shalimar Malani route
+// Exact major railway stations on the 14662 Shalimar Malani route (Old Delhi to Jaipur)
 const ROUTE_14662 = [
-  { lat: 28.6610, lng: 77.2274 }, // Old Delhi (DLI)
-  { lat: 28.6659, lng: 77.1837 }, // Delhi Sarai Rohilla (DEE)
-  { lat: 28.5997, lng: 77.1190 }, // Delhi Cantt (DEC)
-  { lat: 28.4632, lng: 77.0143 }, // Gurgaon (GGN)
-  { lat: 28.3188, lng: 76.7770 }, // Pataudi Road
-  { lat: 28.1833, lng: 76.6167 }, // Rewari
-  { lat: 28.0772, lng: 76.5818 }, // Bawal
-  { lat: 27.8181, lng: 76.6265 }, // Khairthal
-  { lat: 27.5530, lng: 76.6346 }, // Alwar
-  { lat: 27.3871, lng: 76.6111 }, // Malakhera
-  { lat: 27.2359, lng: 76.6223 }, // Rajgarh
-  { lat: 27.0504, lng: 76.5613 }, // Bandikui
-  { lat: 26.8906, lng: 76.3353 }, // Dausa
-  { lat: 26.8437, lng: 76.0468 }, // Bassi
-  { lat: 26.8841, lng: 75.8082 }, // Gandhinagar JPR
-  { lat: 26.9124, lng: 75.7873 }  // Jaipur Jn (JP)
+  { lat: 28.6610, lng: 77.2274, name: "Old Delhi Junction (DLI)" },
+  { lat: 28.6577, lng: 77.1853, name: "Delhi Sarai Rohilla (DEE)" },
+  { lat: 28.6119, lng: 77.1155, name: "Delhi Cantt (DEC)" },
+  { lat: 28.5852, lng: 77.0928, name: "Palam (PM)" },
+  { lat: 28.4891, lng: 77.0111, name: "Gurgaon (GGN)" },
+  { lat: 28.3727, lng: 76.8558, name: "Garhi Harsaru (GHH)" },
+  { lat: 28.3200, lng: 76.7800, name: "Pataudi Road (PTRD)" },
+  { lat: 28.2632, lng: 76.5710, name: "Kishangarh Balawas (KIP)" },
+  { lat: 28.2022, lng: 76.6105, name: "Rewari Junction (RE)" },
+  { lat: 28.0825, lng: 76.5872, name: "Bawal (BWL)" },
+  { lat: 27.8652, lng: 76.6150, name: "Harsoli (HSI)" },
+  { lat: 27.7978, lng: 76.6417, name: "Khairthal (KRH)" },
+  { lat: 27.5605, lng: 76.6214, name: "Alwar Junction (AWR)" },
+  { lat: 27.3900, lng: 76.6190, name: "Malakhera (MKH)" },
+  { lat: 27.2419, lng: 76.6066, name: "Rajgarh (RHG)" },
+  { lat: 27.1501, lng: 76.5755, name: "Baswa (BU)" },
+  { lat: 27.0400, lng: 76.5667, name: "Bandikui Junction (BKI)" },
+  { lat: 26.8999, lng: 76.3303, name: "Dausa (DO)" },
+  { lat: 26.8370, lng: 75.8320, name: "Getor Jagatpura (GTJT)" },
+  { lat: 26.8833, lng: 75.8159, name: "Gandhinagar Jaipur (GADJ)" },
+  { lat: 26.9208, lng: 75.7866, name: "Jaipur Junction (JP)" }
 ]
 
 const isOnRoute = (lat, lng) => {
@@ -356,8 +361,8 @@ const isOnRoute = (lat, lng) => {
     const d = distToSegment(p, ROUTE_14662[i], ROUTE_14662[i + 1]);
     if (d < minDist) minDist = d;
   }
-  // Allow a 10km tolerance for GPS drift inside a metal train and route curvature tracking
-  return minDist <= 10;
+  // Allow a 5km tolerance for GPS drift inside a metal train and route curvature tracking
+  return minDist <= 5;
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -929,39 +934,66 @@ function TrainScreen({ onSelect }) {
         {guard && (
           <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ zIndex: 600 }}>
             <div className="overlay-tap" onClick={closeGuard} />
-            <motion.div className="form-sheet" initial={{ y: '100%' }} animate={{ y: 0 }}>
-              <div className="form-hd">
-                <span className="form-hd-title">Route Verification</span>
-                <button className="cart-x" onClick={closeGuard}><X size={16} /></button>
+            <motion.div className="guard-sheet"
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 220 }}>
+              <div className="guard-handle" />
+              <div className="guard-hd">
+                <div className="guard-hd-txt">
+                  <span className="guard-hd-title">Route Verification</span>
+                  <span className="guard-hd-sub">Security Check</span>
+                </div>
+                <button className="guard-x" onClick={closeGuard}><X size={18} /></button>
               </div>
-              <div className="form-body" style={{ padding: '24px 20px', textAlign: 'center' }}>
+              <div className="guard-body">
                 {locStatus === 'checking' && (
-                  <>
-                    <div className="loc-spinner" style={{ margin: '0 auto 16px', width: 32, height: 32, borderWidth: 4 }} />
-                    <h3 style={{ marginBottom: 8 }}>Verifying your location</h3>
-                    <p style={{ color: 'var(--txt2)' }}>Checking if you are on the train route...</p>
-                  </>
+                  <div className="guard-state">
+                    <div className="guard-loader">
+                      <div className="guard-loader-circle" />
+                      <div className="guard-loader-icon"><MapPin size={24} /></div>
+                    </div>
+                    <h3>Verifying Location</h3>
+                    <p>Securing your connection to <strong>Train {guard.trainNo}</strong>...</p>
+                    <div className="guard-progress">
+                      <motion.div className="guard-progress-bar"
+                        initial={{ width: 0 }}
+                        animate={{ width: '80%' }}
+                        transition={{ duration: 4, ease: "linear" }}
+                      />
+                    </div>
+                  </div>
                 )}
                 {locStatus === 'outside' && (
-                  <>
-                    <AlertCircle size={48} color="#dc2626" style={{ margin: '0 auto 16px' }} />
-                    <h3 style={{ marginBottom: 8, color: '#dc2626' }}>Outside Service Area</h3>
-                    <p style={{ color: 'var(--txt2)', marginBottom: 20 }}>
-                      Orders are exclusively available for passengers on the {guard.from} → {guard.to} train route.
-                    </p>
-                    <button className="ts-btn" onClick={closeGuard}>Okay, understood</button>
-                  </>
+                  <div className="guard-state guard-state-fail">
+                    <div className="guard-icon-box guard-icon-fail">
+                      <AlertCircle size={32} />
+                    </div>
+                    <h3>Outside Service Area</h3>
+                    <p>RailQuick services are exclusively reserved for passengers traveling on the <strong>{guard.from} → {guard.to}</strong> route.</p>
+                    <div className="guard-info-pill">
+                      <Shield size={14} />
+                      <span>GPS location does not match train path</span>
+                    </div>
+                    <button className="guard-btn guard-btn-fail" onClick={closeGuard}>I understand</button>
+                  </div>
                 )}
                 {locStatus === 'denied' && (
-                  <>
-                    <MapPin size={48} color="#d97706" style={{ margin: '0 auto 16px' }} />
-                    <h3 style={{ marginBottom: 8, color: '#d97706' }}>Location Access Needed</h3>
-                    <p style={{ color: 'var(--txt2)', marginBottom: 20 }}>
-                      Please enable GPS so we can verify you are on the supported route.
-                    </p>
-                    <button className="ts-btn" onClick={closeGuard}>Close</button>
-                  </>
+                  <div className="guard-state guard-state-warn">
+                    <div className="guard-icon-box guard-icon-warn">
+                      <Lock size={32} />
+                    </div>
+                    <h3>Location Access Required</h3>
+                    <p>To ensure on-train delivery security, please enable GPS access in your browser settings.</p>
+                    <button className="guard-btn guard-btn-warn" onClick={closeGuard}>Grant Access</button>
+                  </div>
                 )}
+              </div>
+              <div className="guard-foot">
+                <div className="guard-secure-tag">
+                  <Shield size={12} />
+                  <span>Encrypted verification via RailQuick Secure Gateway</span>
+                </div>
               </div>
             </motion.div>
           </motion.div>
