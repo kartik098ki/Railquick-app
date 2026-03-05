@@ -712,27 +712,71 @@ function CartDrawer({ cart, onClose, onCheckout, onAdd, onRemove }) {
 // ──────────────────────────────────────────────────────────────
 // ORDER FORM
 // ──────────────────────────────────────────────────────────────
-function OrderForm({ cart, train, locData, onClose, onConfirm }) {
+function OrderForm({ cart, train, onClose, onConfirm }) {
   const [fd, setFd] = useState({ name: '', seat: '', contact: '' })
   const [placing, setPlacing] = useState(false)
   const [err, setErr] = useState('')
+  const [showGuard, setShowGuard] = useState(false)
+  const [locStatus, setLocStatus] = useState('') // 'checking', 'denied', 'outside'
+  const [userLoc, setUserLoc] = useState(null) // {lat, lng}
+
   const grand = Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0) + 5
+
+  const performVerification = () => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        setLocStatus('denied')
+        resolve(false)
+        return
+      }
+
+      setLocStatus('checking')
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const lat = pos.coords.latitude, lng = pos.coords.longitude
+          setUserLoc({ lat, lng })
+          if (isOnRoute(lat, lng)) {
+            resolve({
+              location: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+              mapsLink: `https://maps.google.com/?q=${lat.toFixed(6)},${lng.toFixed(6)}`
+            })
+          } else {
+            setLocStatus('outside')
+            resolve(false)
+          }
+        },
+        () => {
+          setLocStatus('denied')
+          resolve(false)
+        },
+        { timeout: 8000, maximumAge: 0, enableHighAccuracy: true }
+      )
+    })
+  }
 
   const submit = async () => {
     if (!fd.name.trim()) { setErr('Please enter your name'); return }
     if (!fd.seat.trim()) { setErr('Please enter your seat / berth'); return }
     if (fd.contact.length < 10) { setErr('Enter a valid 10-digit mobile number'); return }
-    setErr(''); setPlacing(true)
-    const orderId = 'RQ' + Math.floor(100000 + Math.random() * 900000)
-    const orderData = {
-      orderId, name: fd.name, seat: fd.seat, contact: fd.contact,
-      items: Object.values(cart), grand,
-      trainNo: train.trainNo,
-      location: locData?.location || 'Not captured',
-      mapsLink: locData?.mapsLink || ''
+    setErr('')
+
+    // Start verification
+    setShowGuard(true)
+    const verification = await performVerification()
+
+    if (verification) {
+      setPlacing(true)
+      const orderId = 'RQ' + Math.floor(100000 + Math.random() * 900000)
+      const orderData = {
+        orderId, name: fd.name, seat: fd.seat, contact: fd.contact,
+        items: Object.values(cart), grand,
+        trainNo: train.trainNo,
+        location: verification.location,
+        mapsLink: verification.mapsLink
+      }
+      saveOrderToSheet(orderData)
+      setTimeout(() => onConfirm(orderData), 1400)
     }
-    saveOrderToSheet(orderData)
-    setTimeout(() => onConfirm(orderData), 1400)
   }
 
   return (
@@ -771,11 +815,90 @@ function OrderForm({ cart, train, locData, onClose, onConfirm }) {
           {err && <div className="form-err"><AlertCircle size={14} />{err}</div>}
         </div>
         <div className="form-foot">
-          <button className="form-cta" onClick={submit} disabled={placing}>
+          <button className="form-cta" onClick={submit} disabled={placing || (showGuard && locStatus === 'checking')}>
             {placing ? '⏳ Placing your order…' : `Confirm · Pay ₹${grand} on Delivery`}
           </button>
           <div className="form-secure"><Shield size={12} />Secured by RailQuick</div>
         </div>
+
+        <AnimatePresence>
+          {showGuard && (
+            <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ zIndex: 700 }}>
+              <div className="overlay-tap" onClick={() => !placing && setShowGuard(false)} />
+              <motion.div className="guard-sheet"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 220 }}>
+                <div className="guard-handle" />
+                <div className="guard-hd">
+                  <div className="guard-hd-txt">
+                    <span className="guard-hd-title">Route Verification</span>
+                    <span className="guard-hd-sub">Security Check</span>
+                  </div>
+                  {!placing && <button className="guard-x" onClick={() => setShowGuard(false)}><X size={18} /></button>}
+                </div>
+                <div className="guard-body">
+                  {locStatus === 'checking' && (
+                    <div className="guard-state">
+                      <div className="guard-loader">
+                        <div className="guard-loader-circle" />
+                        <div className="guard-loader-icon"><MapPin size={24} /></div>
+                      </div>
+                      <h3>Verifying Location</h3>
+                      <p>Securing your connection to <strong>Train {train.trainNo}</strong>...</p>
+                      <div className="guard-progress">
+                        <motion.div className="guard-progress-bar"
+                          initial={{ width: 0 }}
+                          animate={{ width: '80%' }}
+                          transition={{ duration: 4, ease: "linear" }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {locStatus === 'outside' && (
+                    <div className="guard-state guard-state-fail">
+                      <div className="guard-icon-box guard-icon-fail">
+                        <AlertCircle size={32} />
+                      </div>
+                      <h3>Outside Service Area</h3>
+                      <p>RailQuick services are exclusively reserved for passengers traveling on the <strong>{train.from} → {train.to}</strong> route.</p>
+
+                      {userLoc && (
+                        <div className="guard-loc-display">
+                          <div className="loc-label">Your Current Location</div>
+                          <div className="loc-val">{userLoc.lat.toFixed(6)}, {userLoc.lng.toFixed(6)}</div>
+                        </div>
+                      )}
+
+                      <div className="guard-info-pill" style={{ marginBottom: 16 }}>
+                        <Shield size={14} />
+                        <span>GPS loc does not match train path</span>
+                      </div>
+                      <button className="guard-btn guard-btn-fail" onClick={() => setShowGuard(false)}>Go Back to Shop</button>
+                    </div>
+                  )}
+                  {locStatus === 'denied' && (
+                    <div className="guard-state guard-state-warn">
+                      <div className="guard-icon-box guard-icon-warn">
+                        <Lock size={32} />
+                      </div>
+                      <h3>Location Required</h3>
+                      <p>To ensure on-train delivery security, please enable GPS access to confirm your presence on <strong>Train {train.trainNo}</strong>.</p>
+                      <button className="guard-btn guard-btn-warn" onClick={() => setShowGuard(false)}>Enable GPS</button>
+                    </div>
+                  )}
+                </div>
+                <div className="guard-foot">
+                  <div className="guard-secure-tag">
+                    <Shield size={12} />
+                    <span>Encrypted verification via RailQuick Secure Gateway</span>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </motion.div>
   )
@@ -897,107 +1020,17 @@ function TrainScreen({ onSelect }) {
 
   const handleTrainClick = (t) => {
     if (!isActive(t)) return
-    setGuard(t)
-    setLocStatus('checking')
-
-    if (!navigator.geolocation) {
-      setLocStatus('denied')
-      return
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        const lat = pos.coords.latitude, lng = pos.coords.longitude
-        if (isOnRoute(lat, lng)) {
-          const locData = {
-            location: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-            mapsLink: `https://maps.google.com/?q=${lat.toFixed(6)},${lng.toFixed(6)}`
-          }
-          onSelect(t, locData)
-        } else {
-          setLocStatus('outside')
-        }
-      },
-      () => setLocStatus('denied'),
-      { timeout: 8000, maximumAge: 0, enableHighAccuracy: true }
-    )
+    onSelect(t)
   }
 
   const closeGuard = () => {
-    setGuard(null)
-    setLocStatus('')
+    // No-op since we moved logic, but keeping for structure if needed
   }
 
   return (
     <div className="ts-screen">
       <div className="ts-wrap">
-        {guard && (
-          <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ zIndex: 600 }}>
-            <div className="overlay-tap" onClick={closeGuard} />
-            <motion.div className="guard-sheet"
-              initial={{ y: '100%', opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ type: 'spring', damping: 28, stiffness: 220 }}>
-              <div className="guard-handle" />
-              <div className="guard-hd">
-                <div className="guard-hd-txt">
-                  <span className="guard-hd-title">Route Verification</span>
-                  <span className="guard-hd-sub">Security Check</span>
-                </div>
-                <button className="guard-x" onClick={closeGuard}><X size={18} /></button>
-              </div>
-              <div className="guard-body">
-                {locStatus === 'checking' && (
-                  <div className="guard-state">
-                    <div className="guard-loader">
-                      <div className="guard-loader-circle" />
-                      <div className="guard-loader-icon"><MapPin size={24} /></div>
-                    </div>
-                    <h3>Verifying Location</h3>
-                    <p>Securing your connection to <strong>Train {guard.trainNo}</strong>...</p>
-                    <div className="guard-progress">
-                      <motion.div className="guard-progress-bar"
-                        initial={{ width: 0 }}
-                        animate={{ width: '80%' }}
-                        transition={{ duration: 4, ease: "linear" }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {locStatus === 'outside' && (
-                  <div className="guard-state guard-state-fail">
-                    <div className="guard-icon-box guard-icon-fail">
-                      <AlertCircle size={32} />
-                    </div>
-                    <h3>Outside Service Area</h3>
-                    <p>RailQuick services are exclusively reserved for passengers traveling on the <strong>{guard.from} → {guard.to}</strong> route.</p>
-                    <div className="guard-info-pill">
-                      <Shield size={14} />
-                      <span>GPS location does not match train path</span>
-                    </div>
-                    <button className="guard-btn guard-btn-fail" onClick={closeGuard}>I understand</button>
-                  </div>
-                )}
-                {locStatus === 'denied' && (
-                  <div className="guard-state guard-state-warn">
-                    <div className="guard-icon-box guard-icon-warn">
-                      <Lock size={32} />
-                    </div>
-                    <h3>Location Access Required</h3>
-                    <p>To ensure on-train delivery security, please enable GPS access in your browser settings.</p>
-                    <button className="guard-btn guard-btn-warn" onClick={closeGuard}>Grant Access</button>
-                  </div>
-                )}
-              </div>
-              <div className="guard-foot">
-                <div className="guard-secure-tag">
-                  <Shield size={12} />
-                  <span>Encrypted verification via RailQuick Secure Gateway</span>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
+        {/* Route verification moved to OrderForm submission */}
 
         <nav className="ts-nav">
           <Logo h={56} />
@@ -1171,7 +1204,6 @@ function HomeContent({ search, cart, onAdd, onRemove, onCatClick }) {
 // ──────────────────────────────────────────────────────────────
 export default function App() {
   const [train, setTrain] = useState(null)
-  const [locData, setLocData] = useState(null)
   const [cart, setCart] = useState({})
   const [cartOpen, setCartOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
@@ -1221,7 +1253,7 @@ export default function App() {
     setTab('home')
   }
 
-  if (!train) return <TrainScreen onSelect={(t, loc) => { setTrain(t); setLocData(loc) }} />
+  if (!train) return <TrainScreen onSelect={(t) => setTrain(t)} />
   if (done && orderInfo) return <SuccessScreen orderInfo={orderInfo} onGoHome={reset} />
 
   // decide what to show in main content area
@@ -1253,7 +1285,7 @@ export default function App() {
       {/* ─ Order form ─ */}
       <AnimatePresence>
         {formOpen && (
-          <OrderForm cart={cart} train={train} locData={locData} onClose={() => setFormOpen(false)}
+          <OrderForm cart={cart} train={train} onClose={() => setFormOpen(false)}
             onConfirm={info => { setOrderInfo(info); setFormOpen(false); setTracking(true) }} />
         )}
       </AnimatePresence>

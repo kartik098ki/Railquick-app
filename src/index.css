@@ -2549,6 +2549,33 @@ a {
   margin-bottom: 28px;
 }
 
+.guard-loc-display {
+  background: var(--bg3);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  width: 100%;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.guard-loc-display .loc-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--txt3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.guard-loc-display .loc-val {
+  font-family: 'Inter', monospace;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--txt);
+  letter-spacing: -0.2px;
+}
+
 .guard-btn {
   width: 100%;
   max-width: 240px;
