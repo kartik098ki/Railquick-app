@@ -35,6 +35,7 @@ async function saveOrderToSheet(data) {
           'Mobile': data.contact,
           'Items Ordered': items,
           'Total (Rs)': data.grand,
+          'Train No': data.trainNo,
           'Train No.': data.trainNo,
           'Location': data.location || 'Not captured',
           'Maps Link': data.mapsLink || '',
@@ -301,7 +302,15 @@ const PROMOS = [
 // ──────────────────────────────────────────────────────────────
 const isActive = t => { const n = new Date(); return n >= t.serviceStart && n <= t.serviceEnd }
 const isExpired = t => new Date() > t.serviceEnd
+const isUpcoming = t => new Date() < t.serviceStart
 const disc = p => p.mrp > p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0
+
+// ─── Delhi–Jaipur route geographic corridor ───
+// Covers Delhi, Gurgaon, Rewari, Narnaul, Alwar, Bandikui, Jaipur and surrounding areas
+const ROUTE_BOUNDS = { minLat: 25.8, maxLat: 29.8, minLng: 74.0, maxLng: 78.5 }
+const isOnRoute = (lat, lng) =>
+  lat >= ROUTE_BOUNDS.minLat && lat <= ROUTE_BOUNDS.maxLat &&
+  lng >= ROUTE_BOUNDS.minLng && lng <= ROUTE_BOUNDS.maxLng
 
 // ──────────────────────────────────────────────────────────────
 // LOGO
@@ -650,7 +659,7 @@ function CartDrawer({ cart, onClose, onCheckout, onAdd, onRemove }) {
 // ──────────────────────────────────────────────────────────────
 // ORDER FORM
 // ──────────────────────────────────────────────────────────────
-function OrderForm({ cart, train, onClose, onConfirm }) {
+function OrderForm({ cart, train, locData, onClose, onConfirm }) {
   const [fd, setFd] = useState({ name: '', seat: '', contact: '' })
   const [placing, setPlacing] = useState(false)
   const [err, setErr] = useState('')
@@ -661,10 +670,14 @@ function OrderForm({ cart, train, onClose, onConfirm }) {
     if (!fd.seat.trim()) { setErr('Please enter your seat / berth'); return }
     if (fd.contact.length < 10) { setErr('Enter a valid 10-digit mobile number'); return }
     setErr(''); setPlacing(true)
-    // Capture live GPS location silently
-    const { location, mapsLink } = await captureLocation()
     const orderId = 'RQ' + Math.floor(100000 + Math.random() * 900000)
-    const orderData = { orderId, name: fd.name, seat: fd.seat, contact: fd.contact, items: Object.values(cart), grand, trainNo: train.trainNo, location, mapsLink }
+    const orderData = {
+      orderId, name: fd.name, seat: fd.seat, contact: fd.contact,
+      items: Object.values(cart), grand,
+      trainNo: train.trainNo,
+      location: locData?.location || 'Not captured',
+      mapsLink: locData?.mapsLink || ''
+    }
     saveOrderToSheet(orderData)
     setTimeout(() => onConfirm(orderData), 1400)
   }
@@ -703,10 +716,6 @@ function OrderForm({ cart, train, onClose, onConfirm }) {
             ))}
           </div>
           {err && <div className="form-err"><AlertCircle size={14} />{err}</div>}
-          <div className="form-location-note">
-            <MapPin size={12} />
-            <span>Your location is captured once for delivery verification</span>
-          </div>
         </div>
         <div className="form-foot">
           <button className="form-cta" onClick={submit} disabled={placing}>
@@ -830,9 +839,86 @@ function SuccessScreen({ orderInfo, onGoHome }) {
 // TRAIN SELECTION SCREEN
 // ──────────────────────────────────────────────────────────────
 function TrainScreen({ onSelect }) {
+  const [guard, setGuard] = useState(null)
+  const [locStatus, setLocStatus] = useState('') // 'checking', 'denied', 'outside'
+
+  const handleTrainClick = (t) => {
+    if (!isActive(t)) return
+    setGuard(t)
+    setLocStatus('checking')
+
+    if (!navigator.geolocation) {
+      setLocStatus('denied')
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const lat = pos.coords.latitude, lng = pos.coords.longitude
+        if (isOnRoute(lat, lng)) {
+          const locData = {
+            location: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+            mapsLink: `https://maps.google.com/?q=${lat.toFixed(6)},${lng.toFixed(6)}`
+          }
+          onSelect(t, locData)
+        } else {
+          setLocStatus('outside')
+        }
+      },
+      () => setLocStatus('denied'),
+      { timeout: 8000, maximumAge: 0, enableHighAccuracy: true }
+    )
+  }
+
+  const closeGuard = () => {
+    setGuard(null)
+    setLocStatus('')
+  }
+
   return (
     <div className="ts-screen">
       <div className="ts-wrap">
+        {guard && (
+          <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ zIndex: 600 }}>
+            <div className="overlay-tap" onClick={closeGuard} />
+            <motion.div className="form-sheet" initial={{ y: '100%' }} animate={{ y: 0 }}>
+              <div className="form-hd">
+                <span className="form-hd-title">Route Verification</span>
+                <button className="cart-x" onClick={closeGuard}><X size={16} /></button>
+              </div>
+              <div className="form-body" style={{ padding: '24px 20px', textAlign: 'center' }}>
+                {locStatus === 'checking' && (
+                  <>
+                    <div className="loc-spinner" style={{ margin: '0 auto 16px', width: 32, height: 32, borderWidth: 4 }} />
+                    <h3 style={{ marginBottom: 8 }}>Verifying your location</h3>
+                    <p style={{ color: 'var(--txt2)' }}>Checking if you are on the train route...</p>
+                  </>
+                )}
+                {locStatus === 'outside' && (
+                  <>
+                    <AlertCircle size={48} color="#dc2626" style={{ margin: '0 auto 16px' }} />
+                    <h3 style={{ marginBottom: 8, color: '#dc2626' }}>Outside Service Area</h3>
+                    <p style={{ color: 'var(--txt2)', marginBottom: 20 }}>
+                      Orders are exclusively available for passengers on the {guard.from} → {guard.to} train route.
+                    </p>
+                    <button className="ts-btn" onClick={closeGuard}>Okay, understood</button>
+                  </>
+                )}
+                {locStatus === 'denied' && (
+                  <>
+                    <MapPin size={48} color="#d97706" style={{ margin: '0 auto 16px' }} />
+                    <h3 style={{ marginBottom: 8, color: '#d97706' }}>Location Access Needed</h3>
+                    <p style={{ color: 'var(--txt2)', marginBottom: 20 }}>
+                      Please enable GPS so we can verify you are on the supported route.
+                    </p>
+                    <button className="ts-btn" onClick={closeGuard}>Close</button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         <nav className="ts-nav">
           <Logo h={56} />
           <div className="ts-nav-links">
@@ -887,12 +973,12 @@ function TrainScreen({ onSelect }) {
 
         <div className="ts-train-grid">
           {TRAINS.map(train => {
-            const active = isActive(train), expired = isExpired(train)
+            const active = isActive(train), expired = isExpired(train), upcoming = isUpcoming(train)
             return (
               <motion.div key={train.id}
-                className={`ts-card ${active ? 'active' : ''} ${expired ? 'expired' : ''}`}
-                whileHover={!expired ? { y: -4 } : {}}
-                onClick={() => !expired && onSelect(train)}>
+                className={`ts-card ${active ? 'active' : ''} ${expired ? 'expired' : ''} ${upcoming ? 'ts-card-locked' : ''}`}
+                whileHover={active ? { y: -4 } : {}}
+                onClick={() => active && handleTrainClick(train)}>
                 <div className="ts-card-top">
                   <div>
                     <div className="ts-card-no">Train {train.trainNo}</div>
@@ -902,7 +988,7 @@ function TrainScreen({ onSelect }) {
                     ? <span className="badge badge-live"><Zap size={10} />LIVE</span>
                     : expired
                       ? <span className="badge badge-expired"><Lock size={10} />CLOSED</span>
-                      : <span className="badge badge-upcoming"><Timer size={10} />UPCOMING</span>}
+                      : <span className="badge badge-locked-pill"><Lock size={10} />LOCKED</span>}
                 </div>
                 <div className="ts-card-route">
                   <div className="ts-city">
@@ -921,10 +1007,17 @@ function TrainScreen({ onSelect }) {
                 </div>
                 <div className="ts-card-foot">
                   <div className="ts-card-date"><Calendar size={12} /><span>{train.date}</span></div>
-                  <button className="ts-btn">
-                    {active ? 'Order Now' : expired ? 'Closed' : 'Browse'} <ArrowRight size={14} />
-                  </button>
+                  {upcoming
+                    ? <div className="ts-unlock-info"><Lock size={13} /><span>Opens <strong>6 Mar · 7:00 AM</strong></span></div>
+                    : <button className="ts-btn">{active ? 'Order Now' : 'Closed'} <ArrowRight size={14} /></button>}
                 </div>
+                {upcoming && (
+                  <div className="ts-card-lock-overlay">
+                    <div className="ts-lock-icon"><Lock size={28} /></div>
+                    <div className="ts-lock-msg">Service opens</div>
+                    <div className="ts-lock-date">6 March · 7:00 AM</div>
+                  </div>
+                )}
               </motion.div>
             )
           })}
@@ -998,6 +1091,7 @@ function HomeContent({ search, cart, onAdd, onRemove, onCatClick }) {
 // ──────────────────────────────────────────────────────────────
 export default function App() {
   const [train, setTrain] = useState(null)
+  const [locData, setLocData] = useState(null)
   const [cart, setCart] = useState({})
   const [cartOpen, setCartOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
@@ -1047,7 +1141,7 @@ export default function App() {
     setTab('home')
   }
 
-  if (!train) return <TrainScreen onSelect={setTrain} />
+  if (!train) return <TrainScreen onSelect={(t, loc) => { setTrain(t); setLocData(loc) }} />
   if (done && orderInfo) return <SuccessScreen orderInfo={orderInfo} onGoHome={reset} />
 
   // decide what to show in main content area
@@ -1079,7 +1173,7 @@ export default function App() {
       {/* ─ Order form ─ */}
       <AnimatePresence>
         {formOpen && (
-          <OrderForm cart={cart} train={train} onClose={() => setFormOpen(false)}
+          <OrderForm cart={cart} train={train} locData={locData} onClose={() => setFormOpen(false)}
             onConfirm={info => { setOrderInfo(info); setFormOpen(false); setTracking(true) }} />
         )}
       </AnimatePresence>
