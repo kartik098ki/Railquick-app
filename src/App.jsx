@@ -305,12 +305,60 @@ const isExpired = t => new Date() > t.serviceEnd
 const isUpcoming = t => new Date() < t.serviceStart
 const disc = p => p.mrp > p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0
 
-// ─── Delhi–Jaipur route geographic corridor ───
-// Covers Delhi, Gurgaon, Rewari, Narnaul, Alwar, Bandikui, Jaipur and surrounding areas
-const ROUTE_BOUNDS = { minLat: 25.8, maxLat: 29.8, minLng: 74.0, maxLng: 78.5 }
-const isOnRoute = (lat, lng) =>
-  lat >= ROUTE_BOUNDS.minLat && lat <= ROUTE_BOUNDS.maxLat &&
-  lng >= ROUTE_BOUNDS.minLng && lng <= ROUTE_BOUNDS.maxLng
+// ─── Delhi–Jaipur route geographic polyline (Train 14662) ───
+// Calculates precise distance to the exact train route line
+function distToSegment(p, v, w) {
+  const R = 6371; // roughly Earth radius
+  // Convert lat/lng to roughly Euclidean space manually for local 200km scale
+  const rLat = p.lat * Math.PI / 180;
+  const kX = Math.cos(rLat) * 111.32; // km per degree lng
+  const kY = 111.32; // km per degree lat
+
+  const px = p.lng * kX, py = p.lat * kY;
+  const vx = v.lng * kX, vy = v.lat * kY;
+  const wx = w.lng * kX, wy = w.lat * kY;
+
+  const l2 = (wx - vx) ** 2 + (wy - vy) ** 2;
+  if (l2 === 0) return Math.sqrt((px - vx) ** 2 + (py - vy) ** 2);
+
+  let t = ((px - vx) * (wx - vx) + (py - vy) * (wy - vy)) / l2;
+  t = Math.max(0, Math.min(1, t));
+
+  const projX = vx + t * (wx - vx);
+  const projY = vy + t * (wy - vy);
+  return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2);
+}
+
+// Exact major railway stations on the 14662 Shalimar Malani route
+const ROUTE_14662 = [
+  { lat: 28.6610, lng: 77.2274 }, // Old Delhi (DLI)
+  { lat: 28.6659, lng: 77.1837 }, // Delhi Sarai Rohilla (DEE)
+  { lat: 28.5997, lng: 77.1190 }, // Delhi Cantt (DEC)
+  { lat: 28.4632, lng: 77.0143 }, // Gurgaon (GGN)
+  { lat: 28.3188, lng: 76.7770 }, // Pataudi Road
+  { lat: 28.1833, lng: 76.6167 }, // Rewari
+  { lat: 28.0772, lng: 76.5818 }, // Bawal
+  { lat: 27.8181, lng: 76.6265 }, // Khairthal
+  { lat: 27.5530, lng: 76.6346 }, // Alwar
+  { lat: 27.3871, lng: 76.6111 }, // Malakhera
+  { lat: 27.2359, lng: 76.6223 }, // Rajgarh
+  { lat: 27.0504, lng: 76.5613 }, // Bandikui
+  { lat: 26.8906, lng: 76.3353 }, // Dausa
+  { lat: 26.8437, lng: 76.0468 }, // Bassi
+  { lat: 26.8841, lng: 75.8082 }, // Gandhinagar JPR
+  { lat: 26.9124, lng: 75.7873 }  // Jaipur Jn (JP)
+]
+
+const isOnRoute = (lat, lng) => {
+  const p = { lat, lng };
+  let minDist = Infinity;
+  for (let i = 0; i < ROUTE_14662.length - 1; i++) {
+    const d = distToSegment(p, ROUTE_14662[i], ROUTE_14662[i + 1]);
+    if (d < minDist) minDist = d;
+  }
+  // Allow a 10km tolerance for GPS drift inside a metal train and route curvature tracking
+  return minDist <= 10;
+}
 
 // ──────────────────────────────────────────────────────────────
 // LOGO
