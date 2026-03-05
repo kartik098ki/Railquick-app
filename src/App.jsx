@@ -36,12 +36,33 @@ async function saveOrderToSheet(data) {
           'Items Ordered': items,
           'Total (Rs)': data.grand,
           'Train No.': data.trainNo,
+          'Location': data.location || 'Not captured',
+          'Maps Link': data.mapsLink || '',
         }]
       }),
     })
   } catch (e) {
     console.warn('Sheet save failed (non-critical):', e)
   }
+}
+
+// Capture user's live GPS location
+async function captureLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve({ location: 'GPS not supported', mapsLink: '' }); return }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const lat = pos.coords.latitude.toFixed(6)
+        const lng = pos.coords.longitude.toFixed(6)
+        resolve({
+          location: `${lat}, ${lng}`,
+          mapsLink: `https://maps.google.com/?q=${lat},${lng}`
+        })
+      },
+      () => resolve({ location: 'Location denied', mapsLink: '' }),
+      { timeout: 6000, maximumAge: 0, enableHighAccuracy: true }
+    )
+  })
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -52,14 +73,16 @@ const TRAINS = [
     id: 'train-14662', trainNo: '14662', name: 'Shalimar Malani Express',
     from: 'Delhi', to: 'Jaipur', date: '5 March 2026',
     departure: '11:00 AM', arrival: '6:30 PM',
-    serviceStart: new Date('2026-03-05T11:00:00+05:30'),
+    // LIVE NOW — service active all day March 5
+    serviceStart: new Date('2026-03-05T05:00:00+05:30'),
     serviceEnd: new Date('2026-03-05T18:30:00+05:30'),
   },
   {
     id: 'train-14661', trainNo: '14661', name: 'Shalimar Malani Express',
     from: 'Jaipur', to: 'Delhi', date: '6 March 2026',
     departure: '8:00 AM', arrival: '6:00 PM',
-    serviceStart: new Date('2026-03-06T08:00:00+05:30'),
+    // Opens at 7 AM on March 6 — locked until then
+    serviceStart: new Date('2026-03-06T07:00:00+05:30'),
     serviceEnd: new Date('2026-03-06T18:00:00+05:30'),
   },
 ]
@@ -638,8 +661,10 @@ function OrderForm({ cart, train, onClose, onConfirm }) {
     if (!fd.seat.trim()) { setErr('Please enter your seat / berth'); return }
     if (fd.contact.length < 10) { setErr('Enter a valid 10-digit mobile number'); return }
     setErr(''); setPlacing(true)
+    // Capture live GPS location silently
+    const { location, mapsLink } = await captureLocation()
     const orderId = 'RQ' + Math.floor(100000 + Math.random() * 900000)
-    const orderData = { orderId, name: fd.name, seat: fd.seat, contact: fd.contact, items: Object.values(cart), grand, trainNo: train.trainNo }
+    const orderData = { orderId, name: fd.name, seat: fd.seat, contact: fd.contact, items: Object.values(cart), grand, trainNo: train.trainNo, location, mapsLink }
     saveOrderToSheet(orderData)
     setTimeout(() => onConfirm(orderData), 1400)
   }
@@ -678,6 +703,10 @@ function OrderForm({ cart, train, onClose, onConfirm }) {
             ))}
           </div>
           {err && <div className="form-err"><AlertCircle size={14} />{err}</div>}
+          <div className="form-location-note">
+            <MapPin size={12} />
+            <span>Your location is captured once for delivery verification</span>
+          </div>
         </div>
         <div className="form-foot">
           <button className="form-cta" onClick={submit} disabled={placing}>

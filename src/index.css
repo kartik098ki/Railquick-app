@@ -3450,3 +3450,24 @@ a {
 .cart-float-right:hover {
   background: rgba(255, 255, 255, .32);
 }
+/* ================================================================
+   ─── ORDER FORM: LOCATION NOTE ───
+   ================================================================ */
+.form-location-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--txt3);
+  font-weight: 500;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.form-location-note svg {
+  flex-shrink: 0;
+  color: var(--g);
+}
