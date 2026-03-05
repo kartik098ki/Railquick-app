@@ -17,7 +17,7 @@ const GOOGLE_CLIENT_ID = '748294123456-placeholder.apps.googleusercontent.com'
 // ──────────────────────────────────────────────────────────────
 // SHEETDB INTEGRATION
 // ──────────────────────────────────────────────────────────────
-const SHEETDB_URL = 'https://sheetdb.io/api/v1/6z3vh2kf9d5g5'
+const SHEETDB_URL = 'https://sheetdb.io/api/v1/wta3pedl6ahf1'
 
 async function saveOrderToSheet(data) {
   try {
