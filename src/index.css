@@ -706,8 +706,13 @@ a {
 .mob-hdr-row1 {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px 8px;
+  justify-content: space-between;
+  padding: 10px 14px 4px;
+}
+
+.mob-hdr-row2 {
+  display: flex;
+  padding: 0 14px 8px;
 }
 
 .mob-hdr-back {
@@ -982,18 +987,24 @@ a {
 }
 
 .d-nav-inner {
-  max-width: 1200px;
+  max-width: 1300px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 0 16px;
+  justify-content: space-between;
+  padding: 0 20px;
   height: 100%;
+}
+
+.d-nav-left-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .d-nav-logo {
   flex-shrink: 0;
-  margin-right: 4px;
+  margin-right: 12px;
 }
 
 .d-nav-train {
@@ -1026,6 +1037,149 @@ a {
   font-size: 11px;
   color: var(--g);
   font-weight: 600;
+}
+
+/* === LOCATION PILL (Blinkit Style) === */
+.loc-pill {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all .2s;
+  min-width: 150px;
+}
+
+.loc-pill:hover {
+  background: white;
+  border-color: var(--g-mid);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.loc-pill-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loc-dot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.loc-dot-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+}
+
+.loc-dot-pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.4;
+  animation: loc-pulse 2s infinite;
+}
+
+@keyframes loc-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(3.5);
+    opacity: 0;
+  }
+}
+
+.loc-pill-on .loc-dot-inner {
+  background: var(--g);
+}
+
+.loc-pill-on .loc-dot-pulse {
+  color: var(--g);
+}
+
+.loc-pill-off .loc-dot-inner {
+  background: var(--r);
+}
+
+.loc-pill-off .loc-dot-pulse {
+  color: var(--r);
+}
+
+.loc-pill-denied .loc-dot-inner {
+  background: var(--org);
+}
+
+.loc-pill-denied .loc-dot-pulse {
+  color: var(--org);
+}
+
+.loc-pill-checking .loc-dot-inner {
+  background: #cbd5e1;
+}
+
+.loc-pill-checking .loc-dot-pulse {
+  color: #cbd5e1;
+}
+
+.loc-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.loc-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--txt);
+  line-height: 1.2;
+}
+
+.loc-sub {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--txt3);
+  line-height: 1.2;
+}
+
+.loc-coords {
+  font-family: monospace;
+  font-size: 9px;
+  color: var(--txt3);
+  margin-top: 2px;
+  opacity: 0.7;
+}
+
+.mob-hdr .loc-pill {
+  min-width: unset;
+  flex: 1;
+  margin: 0 10px;
+  padding: 4px 10px;
+  border-radius: 100px;
+}
+
+.mob-hdr .loc-coords {
+  display: none;
+}
+
+.mob-hdr .loc-sub {
+  font-size: 9px;
+}
+
+.mob-hdr .loc-label {
+  font-size: 11px;
 }
 
 .d-nav-search {

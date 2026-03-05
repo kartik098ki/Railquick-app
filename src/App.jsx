@@ -618,18 +618,23 @@ function MobileCategoriesScreen({ onSelect }) {
 // ──────────────────────────────────────────────────────────────
 // DESKTOP TOP NAV
 // ──────────────────────────────────────────────────────────────
-function DesktopNav({ train, search, onSearch, cartCount, onCart, onBack }) {
+function DesktopNav({ train, search, onSearch, cartCount, onCart, onBack, routeStatus, userLoc }) {
   return (
     <nav className="d-nav">
       <div className="d-nav-inner">
         <div className="d-nav-logo" onClick={onBack} style={{ cursor: 'pointer' }}><Logo h={52} /></div>
-        <div className="d-nav-train" onClick={onBack}>
-          <ArrowLeft size={14} />
-          <div>
-            <div className="d-nav-train-no">Train {train.trainNo}</div>
-            <div className="d-nav-train-route">{train.from} → {train.to}</div>
+
+        <div className="d-nav-left-box">
+          <div className="d-nav-train" onClick={onBack}>
+            <ArrowLeft size={14} />
+            <div>
+              <div className="d-nav-train-no">Train {train.trainNo}</div>
+              <div className="d-nav-train-route">{train.from} → {train.to}</div>
+            </div>
           </div>
+          <LocationIndicator status={routeStatus} loc={userLoc} />
         </div>
+
         <div className="d-nav-search">
           <Search size={18} />
           <input
@@ -647,6 +652,45 @@ function DesktopNav({ train, search, onSearch, cartCount, onCart, onBack }) {
         </div>
       </div>
     </nav>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────
+// LOCATION INDICATOR (Blinkit Style)
+// ──────────────────────────────────────────────────────────────
+function LocationIndicator({ status, loc }) {
+  const getLabel = () => {
+    if (status === 'on') return 'On Train'
+    if (status === 'off') return 'Outside Service Area'
+    if (status === 'denied') return 'Location Disabled'
+    return 'Checking Location...'
+  }
+
+  const getSub = () => {
+    if (status === 'on' && loc) return 'Route 14662 Match'
+    if (status === 'off' && loc) return 'Off-Route Detection'
+    if (status === 'denied') return 'GPS Access Required'
+    return 'Verifying Route...'
+  }
+
+  return (
+    <div className={`loc-pill loc-pill-${status || 'checking'}`}>
+      <div className="loc-pill-main">
+        <div className="loc-dot">
+          <div className="loc-dot-inner" />
+          <div className="loc-dot-pulse" />
+        </div>
+        <div className="loc-info">
+          <div className="loc-label">{getLabel()}</div>
+          <div className="loc-sub">{getSub()}</div>
+        </div>
+      </div>
+      {loc && (
+        <div className="loc-coords">
+          {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -1214,7 +1258,33 @@ export default function App() {
   const [tab, setTab] = useState('home')
   const [selectedCat, setSelectedCat] = useState(null)
   const [sidebarCat, setSidebarCat] = useState('All')
+  const [routeStatus, setRouteStatus] = useState('checking') // 'checking', 'on', 'off', 'denied'
+  const [userLoc, setUserLoc] = useState(null)
   const mainRef = useRef(null)
+
+  // ── Background Location Monitor ──
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setRouteStatus('denied')
+      return
+    }
+
+    const check = () => {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const lat = pos.coords.latitude, lng = pos.coords.longitude
+          setUserLoc({ lat, lng })
+          setRouteStatus(isOnRoute(lat, lng) ? 'on' : 'off')
+        },
+        () => setRouteStatus('denied'),
+        { timeout: 8000, enableHighAccuracy: true }
+      )
+    }
+
+    check()
+    const itv = setInterval(check, 30000) // Re-check every 30s
+    return () => clearInterval(itv)
+  }, [])
 
   // ── Scroll to top when order app opens ──
   useEffect(() => {
@@ -1295,6 +1365,7 @@ export default function App() {
         train={train} search={search} onSearch={setSearch}
         cartCount={itemCount} onCart={() => setCartOpen(true)}
         onBack={() => setTrain(null)}
+        routeStatus={routeStatus} userLoc={userLoc}
       />
 
       {/* ─ Desktop layout ─ */}
@@ -1307,19 +1378,22 @@ export default function App() {
           <header className="mob-hdr">
             <div className="mob-hdr-row1">
               <div className="mob-hdr-logo-left">
-                <Logo h={40} />
+                <Logo h={38} />
               </div>
+              <LocationIndicator status={routeStatus} loc={userLoc} />
+              <button className="mob-hdr-cart-btn" onClick={() => setCartOpen(true)}>
+                <ShoppingBag size={18} />
+                {itemCount > 0 && <span className="mob-hdr-cart-badge">{itemCount}</span>}
+              </button>
+            </div>
+            <div className="mob-hdr-row2">
               <div className="mob-hdr-back" onClick={() => setTrain(null)}>
-                <ArrowLeft size={13} />
+                <ArrowLeft size={12} />
                 <div className="mob-hdr-back-info">
                   <div className="mob-hdr-train">Train {train.trainNo}</div>
                   <div className="mob-hdr-route">{train.from} → {train.to}</div>
                 </div>
               </div>
-              <button className="mob-hdr-cart-btn" onClick={() => setCartOpen(true)}>
-                <ShoppingBag size={20} />
-                {itemCount > 0 && <span className="mob-hdr-cart-badge">{itemCount}</span>}
-              </button>
             </div>
             <div className="mob-hdr-search">
               <Search size={16} />
