@@ -1162,6 +1162,27 @@ a {
   opacity: 0.7;
 }
 
+.loc-pill-support {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--org-lite);
+  border: 1px solid var(--org-mid);
+  color: var(--org);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-top: 6px;
+  text-decoration: none;
+  transition: all .2s;
+}
+
+.loc-pill-support:hover {
+  background: var(--org);
+  color: white;
+}
+
 .mob-hdr .loc-pill {
   min-width: unset;
   flex: 1;
@@ -2733,11 +2754,39 @@ a {
 .guard-btn {
   width: 100%;
   max-width: 240px;
-  padding: 14px;
-  border-radius: 14px;
+  padding: 16px 24px;
+  border-radius: 100px;
   font-size: 14px;
   font-weight: 800;
+  cursor: pointer;
   transition: all .2s;
+  border: none;
+}
+
+.guard-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  align-items: center;
+}
+
+.guard-support-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--txt2);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 100px;
+  transition: all .2s;
+}
+
+.guard-support-btn:hover {
+  background: var(--bg3);
+  color: var(--txt);
 }
 
 .guard-btn-fail {

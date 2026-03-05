@@ -685,7 +685,12 @@ function LocationIndicator({ status, loc }) {
           <div className="loc-sub">{getSub()}</div>
         </div>
       </div>
-      {loc && (
+      {(status === 'off' || status === 'denied') && (
+        <a href="tel:+918882779769" className="loc-pill-support">
+          Contact Us
+        </a>
+      )}
+      {loc && status === 'on' && (
         <div className="loc-coords">
           {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
         </div>
@@ -919,7 +924,12 @@ function OrderForm({ cart, train, onClose, onConfirm }) {
                         <Shield size={14} />
                         <span>GPS loc does not match train path</span>
                       </div>
-                      <button className="guard-btn guard-btn-fail" onClick={() => setShowGuard(false)}>Go Back to Shop</button>
+                      <div className="guard-actions">
+                        <button className="guard-btn guard-btn-fail" onClick={() => setShowGuard(false)}>Go Back to Shop</button>
+                        <a href="tel:+918882779769" className="guard-support-btn">
+                          <Phone size={14} /> Contact Support
+                        </a>
+                      </div>
                     </div>
                   )}
                   {locStatus === 'denied' && (
@@ -929,7 +939,12 @@ function OrderForm({ cart, train, onClose, onConfirm }) {
                       </div>
                       <h3>Location Required</h3>
                       <p>To ensure on-train delivery security, please enable GPS access to confirm your presence on <strong>Train {train.trainNo}</strong>.</p>
-                      <button className="guard-btn guard-btn-warn" onClick={() => setShowGuard(false)}>Enable GPS</button>
+                      <div className="guard-actions">
+                        <button className="guard-btn guard-btn-warn" onClick={() => setShowGuard(false)}>Enable GPS</button>
+                        <a href="tel:+918882779769" className="guard-support-btn">
+                          <Phone size={14} /> Contact Support
+                        </a>
+                      </div>
                     </div>
                   )}
                 </div>
