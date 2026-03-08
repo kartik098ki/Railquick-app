@@ -25,7 +25,7 @@ function doPost(e) {
         // Write headers if first row is empty
         if (sheet.getLastRow() === 0) {
             sheet.appendRow([
-                'Timestamp', 'https://sheetdb.io/api/v1/6z3vh2kf9d5g5', 'Customer Name', 'Seat / Berth',
+                'Timestamp', 'Order ID', 'Customer Name', 'Seat / Berth',
                 'Mobile', 'Items Ordered', 'Total (₹)', 'Train No.'
             ]);
             sheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#0C831F').setFontColor('#ffffff');

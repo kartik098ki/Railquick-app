@@ -17,13 +17,13 @@ const GOOGLE_CLIENT_ID = '748294123456-placeholder.apps.googleusercontent.com'
 // ──────────────────────────────────────────────────────────────
 // SHEETDB INTEGRATION
 // ──────────────────────────────────────────────────────────────
-const SHEETDB_URL = 'https://sheetdb.io/api/v1/wta3pedl6ahf1'
+const SHEETDB_URL = 'https://sheetdb.io/api/v1/4q9nsc7xdrojj'
 
 async function saveOrderToSheet(data) {
   try {
     const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
     const items = data.items.map(i => `${i.name} x${i.qty}`).join(' | ')
-    await fetch(SHEETDB_URL, {
+    const res = await fetch(SHEETDB_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
@@ -36,14 +36,13 @@ async function saveOrderToSheet(data) {
           'Items Ordered': items,
           'Total (Rs)': data.grand,
           'Train No': data.trainNo,
-          'Train No.': data.trainNo,
-          'Location': data.location || 'Not captured',
-          'Maps Link': data.mapsLink || '',
         }]
       }),
     })
+    const result = await res.json()
+    console.log('Sheet save response:', result)
   } catch (e) {
-    console.warn('Sheet save failed (non-critical):', e)
+    console.error('Sheet save failed:', e)
   }
 }
 
@@ -765,67 +764,26 @@ function OrderForm({ cart, train, onClose, onConfirm }) {
   const [fd, setFd] = useState({ name: '', seat: '', contact: '' })
   const [placing, setPlacing] = useState(false)
   const [err, setErr] = useState('')
-  const [showGuard, setShowGuard] = useState(false)
-  const [locStatus, setLocStatus] = useState('') // 'checking', 'denied', 'outside'
-  const [userLoc, setUserLoc] = useState(null) // {lat, lng}
 
   const grand = Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0) + 5
-
-  const performVerification = () => {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        setLocStatus('denied')
-        resolve(false)
-        return
-      }
-
-      setLocStatus('checking')
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          const lat = pos.coords.latitude, lng = pos.coords.longitude
-          setUserLoc({ lat, lng })
-          if (isOnRoute(lat, lng)) {
-            resolve({
-              location: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-              mapsLink: `https://maps.google.com/?q=${lat.toFixed(6)},${lng.toFixed(6)}`
-            })
-          } else {
-            setLocStatus('outside')
-            resolve(false)
-          }
-        },
-        () => {
-          setLocStatus('denied')
-          resolve(false)
-        },
-        { timeout: 8000, maximumAge: 0, enableHighAccuracy: true }
-      )
-    })
-  }
 
   const submit = async () => {
     if (!fd.name.trim()) { setErr('Please enter your name'); return }
     if (!fd.seat.trim()) { setErr('Please enter your seat / berth'); return }
     if (fd.contact.length < 10) { setErr('Enter a valid 10-digit mobile number'); return }
     setErr('')
+    setPlacing(true)
 
-    // Start verification
-    setShowGuard(true)
-    const verification = await performVerification()
-
-    if (verification) {
-      setPlacing(true)
-      const orderId = 'RQ' + Math.floor(100000 + Math.random() * 900000)
-      const orderData = {
-        orderId, name: fd.name, seat: fd.seat, contact: fd.contact,
-        items: Object.values(cart), grand,
-        trainNo: train.trainNo,
-        location: verification.location,
-        mapsLink: verification.mapsLink
-      }
-      saveOrderToSheet(orderData)
-      setTimeout(() => onConfirm(orderData), 1400)
+    const orderId = 'RQ' + Math.floor(100000 + Math.random() * 900000)
+    const orderData = {
+      orderId, name: fd.name, seat: fd.seat, contact: fd.contact,
+      items: Object.values(cart), grand,
+      trainNo: train.trainNo,
+      location: 'Not captured',
+      mapsLink: ''
     }
+    await saveOrderToSheet(orderData)
+    onConfirm(orderData)
   }
 
   return (
@@ -864,100 +822,11 @@ function OrderForm({ cart, train, onClose, onConfirm }) {
           {err && <div className="form-err"><AlertCircle size={14} />{err}</div>}
         </div>
         <div className="form-foot">
-          <button className="form-cta" onClick={submit} disabled={placing || (showGuard && locStatus === 'checking')}>
+          <button className="form-cta" onClick={submit} disabled={placing}>
             {placing ? '⏳ Placing your order…' : `Confirm · Pay ₹${grand} on Delivery`}
           </button>
           <div className="form-secure"><Shield size={12} />Secured by RailQuick</div>
         </div>
-
-        <AnimatePresence>
-          {showGuard && (
-            <motion.div className="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ zIndex: 700 }}>
-              <div className="overlay-tap" onClick={() => !placing && setShowGuard(false)} />
-              <motion.div className="guard-sheet"
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                transition={{ type: 'spring', damping: 28, stiffness: 220 }}>
-                <div className="guard-handle" />
-                <div className="guard-hd">
-                  <div className="guard-hd-txt">
-                    <span className="guard-hd-title">Route Verification</span>
-                    <span className="guard-hd-sub">Security Check</span>
-                  </div>
-                  {!placing && <button className="guard-x" onClick={() => setShowGuard(false)}><X size={18} /></button>}
-                </div>
-                <div className="guard-body">
-                  {locStatus === 'checking' && (
-                    <div className="guard-state">
-                      <div className="guard-loader">
-                        <div className="guard-loader-circle" />
-                        <div className="guard-loader-icon"><MapPin size={24} /></div>
-                      </div>
-                      <h3>Verifying Location</h3>
-                      <p>Securing your connection to <strong>Train {train.trainNo}</strong>...</p>
-                      <div className="guard-progress">
-                        <motion.div className="guard-progress-bar"
-                          initial={{ width: 0 }}
-                          animate={{ width: '80%' }}
-                          transition={{ duration: 4, ease: "linear" }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {locStatus === 'outside' && (
-                    <div className="guard-state guard-state-fail">
-                      <div className="guard-icon-box guard-icon-fail">
-                        <AlertCircle size={32} />
-                      </div>
-                      <h3>Outside Service Area</h3>
-                      <p>RailQuick services are exclusively reserved for passengers traveling on the <strong>{train.from} → {train.to}</strong> route.</p>
-
-                      {userLoc && (
-                        <div className="guard-loc-display">
-                          <div className="loc-label">Your Current Location</div>
-                          <div className="loc-val">{userLoc.lat.toFixed(6)}, {userLoc.lng.toFixed(6)}</div>
-                        </div>
-                      )}
-
-                      <div className="guard-info-pill" style={{ marginBottom: 16 }}>
-                        <Shield size={14} />
-                        <span>GPS loc does not match train path</span>
-                      </div>
-                      <div className="guard-actions">
-                        <button className="guard-btn guard-btn-fail" onClick={() => setShowGuard(false)}>Go Back to Shop</button>
-                        <a href="tel:+918882779769" className="guard-support-btn">
-                          <Phone size={14} /> Contact Support
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                  {locStatus === 'denied' && (
-                    <div className="guard-state guard-state-warn">
-                      <div className="guard-icon-box guard-icon-warn">
-                        <Lock size={32} />
-                      </div>
-                      <h3>Location Required</h3>
-                      <p>To ensure on-train delivery security, please enable GPS access to confirm your presence on <strong>Train {train.trainNo}</strong>.</p>
-                      <div className="guard-actions">
-                        <button className="guard-btn guard-btn-warn" onClick={() => setShowGuard(false)}>Enable GPS</button>
-                        <a href="tel:+918882779769" className="guard-support-btn">
-                          <Phone size={14} /> Contact Support
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="guard-foot">
-                  <div className="guard-secure-tag">
-                    <Shield size={12} />
-                    <span>Encrypted verification via RailQuick Secure Gateway</span>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
     </motion.div>
   )
