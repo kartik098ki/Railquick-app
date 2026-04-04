@@ -660,8 +660,17 @@ function DesktopNav({ train, search, onSearch, cartCount, onCart, onBack, routeS
           <div className="d-nav-train" onClick={onBack}>
             <ArrowLeft size={14} />
             <div>
-              <div className="d-nav-train-no">Train {train.trainNo}</div>
-              <div className="d-nav-train-route">{train.from} → {train.to}</div>
+              {train.isDemo ? (
+                <>
+                  <div className="d-nav-train-no" style={{ color: 'var(--g)' }}>📍 Your Location</div>
+                  <div className="d-nav-train-route">{train.to}</div>
+                </>
+              ) : (
+                <>
+                  <div className="d-nav-train-no">Train {train.trainNo}</div>
+                  <div className="d-nav-train-route">{train.from} → {train.to}</div>
+                </>
+              )}
             </div>
           </div>
           <LocationIndicator status={routeStatus} loc={userLoc} />
@@ -1359,8 +1368,17 @@ export default function App() {
               <div className="mob-hdr-back" onClick={() => setTrain(null)}>
                 <ArrowLeft size={12} />
                 <div className="mob-hdr-back-info">
-                  <div className="mob-hdr-train">Train {train.trainNo}</div>
-                  <div className="mob-hdr-route">{train.from} → {train.to}</div>
+                  {train.isDemo ? (
+                    <>
+                      <div className="mob-hdr-train" style={{ color: 'var(--g)' }}>📍 Delivering to</div>
+                      <div className="mob-hdr-route">{train.to}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mob-hdr-train">Train {train.trainNo}</div>
+                      <div className="mob-hdr-route">{train.from} → {train.to}</div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1381,7 +1399,7 @@ export default function App() {
           <div className="mob-delivery-bar">
             <div className="pulse-dot" />
             <Zap size={13} />
-            <span>Delivering in <strong>5 mins</strong> · Train {train.trainNo}</span>
+            <span>Delivering in <strong>5 mins</strong> · {train.isDemo ? train.to.split(',')[0] : `Train ${train.trainNo}`}</span>
           </div>
 
           {/* ─ MOBILE content ─ */}
