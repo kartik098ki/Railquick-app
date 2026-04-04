@@ -1,57 +1,69 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@600;700;800;900&display=swap');
 
 /* ================================================================
-   TOKENS (Premium Dark Mode)
+   TOKENS (Premium Light Mode)
    ================================================================ */
 :root {
-  --g: #00e676; /* Vibrant Neon Green */
-  --g2: #00c853;
-  --g3: #009624;
-  --g-lite: rgba(0, 230, 118, 0.12);
-  --g-mid: #69f0ae;
-  --g-glow: rgba(0, 230, 118, 0.4);
-  --g-gradient: linear-gradient(135deg, #00e676 0%, #00c853 100%);
+  --g: #0a7a1c;
+  --g2: #16c93b;
+  --g3: #07601a;
+  --g-lite: #e3f9e9;
+  --g-mid: #a8e8b8;
+  --g-glow: rgba(10, 122, 28, .22);
+  --g-gradient: linear-gradient(135deg, #0a7a1c 0%, #14b836 50%, #22d44a 100%);
 
-  --org: #ff6d00;
-  --org2: #ff9100;
-  --org-lite: rgba(255, 109, 0, 0.15);
+  --org: #f47b20;
+  --org2: #ff9f40;
+  --org-lite: #fff3e8;
   --ylw: #ffd60a;
-  --red: #ff3d00;
-  --purple: #d500f9;
+  --red: #e02020;
+  --purple: #7c3aed;
 
-  --bg: #090a0f;      /* Deep rich dark bg */
-  --bg2: #14161f;
-  --white: #11131a;   /* Changed "white" to dark surface for components */
-  --card: #181a24;
-  --bg3: #1e202d;
-  --glass-bg: rgba(17, 19, 26, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --bg: #f8fafc;
+  --bg2: #f1f5f9;
+  --white: #ffffff;
+  --card: #ffffff;
+  --bg3: #ffffff;
+  --glass-bg: rgba(255, 255, 255, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.5);
 
-  --txt: #ffffff;
-  --txt2: #9499a3;
-  --txt3: #626773;
+  --txt: #111827;
+  --txt2: #475569;
+  --txt3: #94a3b8;
 
-  --border: rgba(255, 255, 255, 0.08);
-  --border2: rgba(255, 255, 255, 0.12);
+  --border: #e2e8f0;
+  --border2: #cbd5e1;
 
-  --r-xl: 24px;
+  --r-xl: 22px;
   --r-lg: 18px;
   --r-md: 14px;
   --r-sm: 10px;
   --r-xs: 7px;
 
-  --sha-xs: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --sha-sm: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --sha-md: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --sha-lg: 0 16px 48px rgba(0, 0, 0, 0.8);
-  --sha-xl: 0 24px 64px rgba(0, 0, 0, 0.9);
-  --sha-g: 0 8px 24px rgba(0, 230, 118, 0.25);
-  --sha-g2: 0 12px 36px rgba(0, 230, 118, 0.45);
+  --sha-xs: 0 1px 4px rgba(0, 0, 0, .04);
+  --sha-sm: 0 3px 10px rgba(0, 0, 0, .06);
+  --sha-md: 0 6px 20px rgba(0, 0, 0, .08);
+  --sha-lg: 0 16px 40px rgba(0, 0, 0, .12);
+  --sha-xl: 0 24px 60px rgba(0, 0, 0, .16);
+  --sha-g: 0 8px 24px rgba(10, 122, 28, .25);
+  --sha-g2: 0 12px 36px rgba(10, 122, 28, .35);
 
   --nav-h: 74px;
   --mob-hdr-h: 108px;
   --btm-nav-h: 68px;
   --sidebar-w: 100px;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(10, 122, 28, 0.6); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(10, 122, 28, 0); }
+  100% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(10, 122, 28, 0); }
+}
+
+@keyframes float-up {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+  100% { transform: translateY(0px); }
 }
 
 /* ================================================================
@@ -330,6 +342,7 @@ a {
   width: 100%;
   border-radius: var(--r-xl);
   box-shadow: var(--sha-lg);
+  animation: float-up 6s ease-in-out infinite;
 }
 
 .ts-hero-float {
@@ -344,6 +357,7 @@ a {
   gap: 12px;
   box-shadow: var(--sha-md);
   border: 1.5px solid var(--border);
+  animation: float-up 5s ease-in-out infinite reverse;
 }
 
 .ts-hero-float-icon {
@@ -744,22 +758,24 @@ a {
 .ts-btn-demo {
   background: var(--g-gradient);
   color: white;
-  padding: 16px 32px;
+  padding: 18px 36px;
   border-radius: 100px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   box-shadow: var(--sha-g);
   transition: all .25s;
   position: relative;
   z-index: 1;
+  animation: pulse-ring 3s infinite;
 }
 
 .ts-btn-demo:hover:not(:disabled) {
-  transform: translateY(-2px) scale(1.03);
+  transform: translateY(-2px) scale(1.05);
   box-shadow: var(--sha-g2);
+  animation: none;
 }
 
 .ts-btn-demo:disabled {
