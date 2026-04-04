@@ -17,7 +17,7 @@ const GOOGLE_CLIENT_ID = '748294123456-placeholder.apps.googleusercontent.com'
 // ──────────────────────────────────────────────────────────────
 // SHEETDB INTEGRATION
 // ──────────────────────────────────────────────────────────────
-const SHEETDB_URL = 'https://sheetdb.io/api/v1/4q9nsc7xdrojj'
+const SHEETDB_URL = 'https://sheetdb.io/api/v1/ayjl0v7njty0e'
 
 async function saveOrderToSheet(data) {
   try {
@@ -36,6 +36,8 @@ async function saveOrderToSheet(data) {
           'Items Ordered': items,
           'Total (Rs)': data.grand,
           'Train No': data.trainNo,
+          'Location': data.location || '',
+          'Maps Link': data.mapsLink || ''
         }]
       }),
     })
@@ -61,6 +63,37 @@ async function captureLocation() {
       },
       () => resolve({ location: 'Location denied', mapsLink: '' }),
       { timeout: 6000, maximumAge: 0, enableHighAccuracy: true }
+    )
+  })
+}
+
+// Demo reverse geocoder
+async function startDemoLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve({ locationName: 'GPS not supported', lat: 0, lng: 0 }); return }
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+          const data = await res.json()
+          let locName = 'Unknown Location'
+          if (data && data.address) {
+            locName = data.address.city || data.address.state_district || data.address.state || 'Local Area';
+            if (data.address.road || data.address.suburb || data.address.neighbourhood) {
+              locName = `${data.address.road || data.address.suburb || data.address.neighbourhood}, ${locName}`
+            }
+          } else if (data && data.display_name) {
+             locName = data.display_name.split(',').slice(0, 2).join(', ')
+          }
+          resolve({ locationName: locName, lat, lng })
+        } catch (e) {
+          resolve({ locationName: `${lat.toFixed(4)}, ${lng.toFixed(4)}`, lat, lng })
+        }
+      },
+      () => resolve({ locationName: 'Location Denied by User', lat: 0, lng: 0 }),
+      { timeout: 8000, enableHighAccuracy: true }
     )
   })
 }
@@ -774,13 +807,24 @@ function OrderForm({ cart, train, onClose, onConfirm }) {
     setErr('')
     setPlacing(true)
 
+    let orderLocation = 'Not captured'
+    let orderMapsLink = ''
+    if (train.isDemo) {
+      orderLocation = train.to // This contains the detected location name for demo
+      if (train.lat !== undefined && train.lng !== undefined && train.lat !== 0) {
+        orderMapsLink = `https://maps.google.com/?q=${train.lat},${train.lng}`
+      }
+    } else {
+      // In a real train order we can capture gps in future or just leave blank for now as before.
+    }
+
     const orderId = 'RQ' + Math.floor(100000 + Math.random() * 900000)
     const orderData = {
       orderId, name: fd.name, seat: fd.seat, contact: fd.contact,
       items: Object.values(cart), grand,
       trainNo: train.trainNo,
-      location: 'Not captured',
-      mapsLink: ''
+      location: orderLocation,
+      mapsLink: orderMapsLink
     }
     await saveOrderToSheet(orderData)
     onConfirm(orderData)
@@ -944,15 +988,31 @@ function SuccessScreen({ orderInfo, onGoHome }) {
 // ──────────────────────────────────────────────────────────────
 function TrainScreen({ onSelect }) {
   const [guard, setGuard] = useState(null)
-  const [locStatus, setLocStatus] = useState('') // 'checking', 'denied', 'outside'
+  const [locStatus, setLocStatus] = useState('') // 'checking', 'denied', 'outside', 'fetching-demo'
 
   const handleTrainClick = (t) => {
     if (!isActive(t)) return
     onSelect(t)
   }
 
-  const closeGuard = () => {
-    // No-op since we moved logic, but keeping for structure if needed
+  const handleDemoClick = async () => {
+    setLocStatus('fetching-demo')
+    const loc = await startDemoLocation()
+    onSelect({
+      isDemo: true,
+      trainNo: 'DEMO',
+      name: 'Campus / Local Delivery (Demo)',
+      from: 'RailQuick Hub',
+      to: loc.locationName, // Display localized name
+      date: new Date().toLocaleDateString('en-GB'),
+      departure: 'Now',
+      arrival: '5 Mins',
+      lat: loc.lat,
+      lng: loc.lng,
+      serviceStart: new Date(0),
+      serviceEnd: new Date('2099-01-01'),
+    })
+    setLocStatus('')
   }
 
   return (
@@ -1063,6 +1123,31 @@ function TrainScreen({ onSelect }) {
             )
           })}
         </div>
+
+        {/* --- DEMO SECTION --- */}
+        <div className="ts-demo-section">
+          <div className="ts-demo-hdr">
+            <MapPin size={24} color="var(--primary)" />
+            <div>
+              <h3>Test our Demo Flow</h3>
+              <p>Experience the RailQuick ordering interface directly from your location.</p>
+            </div>
+          </div>
+          <button 
+            className="ts-btn-demo" 
+            onClick={handleDemoClick} 
+            disabled={locStatus === 'fetching-demo'}
+          >
+            {locStatus === 'fetching-demo' ? (
+              <span className="demo-spinner">⏳ Locating you...</span>
+            ) : (
+              <>
+                <Zap size={16} /> Order to My Location
+              </>
+            )}
+          </button>
+        </div>
+        {/* -------------------- */}
 
         <footer className="ts-footer">
           <Logo h={38} />
