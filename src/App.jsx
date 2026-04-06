@@ -792,7 +792,10 @@ function CartDrawer({ cart, onClose, onCheckout, onAdd, onRemove }) {
           </div>
         </div>
         <div className="cart-foot">
-          <button className="cart-cta" onClick={onCheckout}>Place Order · ₹{grand}</button>
+          <button className="cart-cta test-phase-btn" onClick={(e) => e.preventDefault()}>
+            <span>🚀 We are in Test Phase</span>
+            <span style={{ fontSize: '12px', opacity: 0.85, marginTop: '2px', fontWeight: 600 }}>Launching Soon for Everyone!</span>
+          </button>
         </div>
       </motion.div>
     </motion.div>
